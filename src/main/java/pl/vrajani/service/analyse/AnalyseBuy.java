@@ -23,7 +23,7 @@ public class AnalyseBuy implements Analyser {
             log.info("Last Value: "+ datumList.get(datumList.size()-1).getClose());
             Double buyPercent = getPercent(datumList.get(datumList.size()-1).getClose(), datumList.get(0).getClose());
             log.info("Buy Percent: "+buyPercent);
-            if(buyPercent < 99.20){
+            if(buyPercent < 99.03){
                 return true;
             }
         }

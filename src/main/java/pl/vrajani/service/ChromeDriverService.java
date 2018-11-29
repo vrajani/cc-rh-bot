@@ -7,6 +7,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import pl.vrajani.utility.ThreadWait;
 
 @Service
 public class ChromeDriverService {
@@ -16,6 +17,7 @@ public class ChromeDriverService {
         try {
             log.info("Opening Robinhood home page:::");
             driver.get("https://robinhood.com/login");
+            ThreadWait.waitFor(3000);
 
             String username = System.getenv("username");
             driver.findElement(By.name("username")).sendKeys(username);
@@ -24,7 +26,7 @@ public class ChromeDriverService {
             driver.findElement(By.name("password")).sendKeys(password);
 
             driver.findElement(By.xpath("//span[text()='Sign In']")).click();
-            Thread.sleep(5000);
+            ThreadWait.waitFor(5000);
 
         } catch (Exception ex){
             ex.printStackTrace();

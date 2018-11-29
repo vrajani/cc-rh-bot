@@ -15,7 +15,7 @@ import java.util.Map;
 @org.springframework.context.annotation.Configuration
 public class Configuration {
 
-    private static final List<String> CRYPTO = Arrays.asList(new String[]{"LTC","ETC"});
+    public static final List<String> CRYPTO = Arrays.asList("LTC","ETC","BTC","ETH");
 
     @Autowired
     private StateLoadService stateLoadService;
@@ -28,7 +28,7 @@ public class Configuration {
     @Bean
     public Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap() throws Exception{
         Map<String, CryptoCurrencyStatus> cryptoCurrencyMap = new HashMap<>();
-        CRYPTO.parallelStream().forEach(str -> {
+        CRYPTO.stream().forEach(str -> {
             try {
                 cryptoCurrencyMap.put(str,stateLoadService.readState(str.toLowerCase()));
             } catch (IOException e) {
