@@ -1,11 +1,10 @@
 package pl.vrajani.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import pl.vrajani.model.CryptoCurrencyStatus;
-import pl.vrajani.service.StateLoadService;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,10 +14,7 @@ import java.util.Map;
 @org.springframework.context.annotation.Configuration
 public class Configuration {
 
-    public static final List<String> CRYPTO = Arrays.asList("LTC","ETC","BTC","ETH");
-
-    @Autowired
-    private StateLoadService stateLoadService;
+    public static final List<String> CRYPTO = Arrays.asList("LTC","ETC","BTC","ETH","BCH");
 
     @Bean
     public ObjectMapper objectMapper(){
@@ -26,11 +22,12 @@ public class Configuration {
     }
 
     @Bean
-    public Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap() throws Exception{
+    public Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap(ObjectMapper objectMapper) throws Exception{
         Map<String, CryptoCurrencyStatus> cryptoCurrencyMap = new HashMap<>();
         CRYPTO.stream().forEach(str -> {
             try {
-                cryptoCurrencyMap.put(str,stateLoadService.readState(str.toLowerCase()));
+                cryptoCurrencyMap.put(str,objectMapper.readValue(new File("src/main/resources/status/"+ str.toLowerCase()+".json"),
+                        CryptoCurrencyStatus.class));
             } catch (IOException e) {
                 e.printStackTrace();
             }

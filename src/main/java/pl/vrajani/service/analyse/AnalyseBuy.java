@@ -16,16 +16,20 @@ public class AnalyseBuy implements Analyser {
     @Override
     public boolean analyse(CryptoHistData cryptoHistData, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
-        if( cryptoCurrencyStatus.isShouldBuy()){
+        if( cryptoCurrencyStatus.isShouldBuy() && cryptoCurrencyStatus.getWaitCounter() == 0){
             List<Datum> datumList = cryptoHistData.getData();
 
             log.info("start Value: "+ datumList.get(0).getClose());
             log.info("Last Value: "+ datumList.get(datumList.size()-1).getClose());
             Double buyPercent = getPercent(datumList.get(datumList.size()-1).getClose(), datumList.get(0).getClose());
             log.info("Buy Percent: "+buyPercent);
-            if(buyPercent < 99.03){
-                return true;
+            if(cryptoCurrencyStatus.getSymbol().equalsIgnoreCase("etc")){
+                return buyPercent < 98.51;
+            } else {
+                return buyPercent < 98.75;
             }
+        } else if(cryptoCurrencyStatus.getWaitCounter() > 0){
+            cryptoCurrencyStatus.setWaitCounter(cryptoCurrencyStatus.getWaitCounter()-1);
         }
         return false;
     }

@@ -7,6 +7,9 @@ public class CryptoCurrencyStatus {
     Double lastSalePrice;
     boolean shouldBuy;
     boolean shouldSell;
+    Double buyTotal;
+    Double sellTotal;
+    int waitCounter;
 
 
     public Double getLastBuyPrice() {
@@ -55,6 +58,33 @@ public class CryptoCurrencyStatus {
         return new StringBuilder().append("{[symbol=").append(symbol)
                 .append("],[lastBuyPrice=").append(lastBuyPrice)
                 .append("],[lastSalePrice=").append(lastSalePrice)
+                .append("],[buyTotal=").append(buyTotal)
+                .append("],[sellTotal=").append(sellTotal)
+                .append("],[waitCounter=").append(waitCounter)
                 .append("]}").toString();
+    }
+
+    public Double getBuyTotal() {
+        return buyTotal;
+    }
+
+    public void setBuyTotal(Double buyTotal) {
+        this.buyTotal = buyTotal;
+    }
+
+    public Double getSellTotal() {
+        return sellTotal;
+    }
+
+    public void setSellTotal(Double sellTotal) {
+        this.sellTotal = sellTotal;
+    }
+
+    public int getWaitCounter() {
+        return waitCounter;
+    }
+
+    public void setWaitCounter(int waitCounter) {
+        this.waitCounter = waitCounter;
     }
 }
