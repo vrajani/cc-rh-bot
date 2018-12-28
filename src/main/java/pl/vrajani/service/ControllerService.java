@@ -24,7 +24,7 @@ import java.util.Map;
 @Component
 public class ControllerService {
     private static Logger LOG = LoggerFactory.getLogger(ControllerService.class);
-    private static final long INTERVAL_RATE = 120000;
+    private static final long INTERVAL_RATE = 100000;
 
     private WebDriver driver;
 
@@ -100,23 +100,22 @@ public class ControllerService {
 
                     CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str).getBody();
                     ArrayList<Datum> datum = (ArrayList<Datum>) cryptoHistData.getData();
-                    LOG.info("Current Price: " + datum.get(datum.size() - 1).getClose());
+                    LOG.info("25 Mins ago Value: " + datum.get(0).getClose());
+                    LOG.info("Current Value: " + datum.get(datum.size() - 1).getClose());
 
-//        Double resetValue = getPercentAmount(currencyStatus.getLastBuyPrice(), datum.get(datum.size()-1).getClose());
-//        LOG.info("Reset Data::: "+ str + " with reset value::: "+ resetValue);
-//        if(resetValue > 103.5 && !currencyStatus.isShouldBuy()){
-//            LOG.info("Resetting::: "+ str + " with reset value::: "+ resetValue);
-//            currencyStatus.setShouldBuy(true);
-//        }
+                    Double resetValue = getPercentAmount(currencyStatus.getLastBuyPrice(), datum.get(datum.size()-1).getClose());
+                    LOG.info("Reset Data::: "+ str + " with reset value::: "+ resetValue);
+                    if(resetValue > 105.0 && !currencyStatus.isShouldBuy()){
+                        LOG.info("Resetting::: "+ str + " with reset value::: "+ resetValue);
+                        currencyStatus.setShouldBuy(true);
+                    }
 
                     if (analyseBuy.analyse(cryptoHistData, currencyStatus)){
                         LOG.info("Buying: "+ str + " with price: "+ datum.get(datum.size()-1).getClose());
-                        actionService.buy(currencyStatus, driver);
-                        currencyStatus.setLastBuyPrice(datum.get(datum.size()-1).getClose());
+                        actionService.buy(currencyStatus, driver, datum.get(datum.size()-1).getClose());
                     } else if (analyseSell.analyse(cryptoHistData, currencyStatus)){
                         LOG.info("Selling: "+ str + " with price: "+ datum.get(datum.size()-1).getClose());
-                        actionService.sell(currencyStatus, driver);
-                        currencyStatus.setLastSalePrice(datum.get(datum.size()-1).getClose());
+                        actionService.sell(currencyStatus, driver, datum.get(datum.size()-1).getClose());
                     } else {
                         LOG.info("Status: No buy or sell!!");
                     }
@@ -136,8 +135,8 @@ public class ControllerService {
     }
 
     private boolean isDownTime() {
-        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY); //Current hour
-        int currentMinute = Calendar.getInstance().get(Calendar.MINUTE); //Current hour
+        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        int currentMinute = Calendar.getInstance().get(Calendar.MINUTE);
 
         return (currentHour == 16 && currentMinute > 25 )|| (currentHour == 17 && currentMinute < 5 );
     }

@@ -14,7 +14,7 @@ import java.util.Map;
 @org.springframework.context.annotation.Configuration
 public class Configuration {
 
-    public static final List<String> CRYPTO = Arrays.asList("LTC","ETC","BTC","ETH","BCH");
+    public static final List<String> CRYPTO = Arrays.asList("LTC","BTC","ETH","BCH");
 
     @Bean
     public ObjectMapper objectMapper(){
