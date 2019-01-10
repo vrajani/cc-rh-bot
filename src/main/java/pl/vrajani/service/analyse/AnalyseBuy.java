@@ -4,24 +4,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import pl.vrajani.model.CryptoCurrencyStatus;
-import pl.vrajani.model.CryptoHistData;
-import pl.vrajani.model.Datum;
-
-import java.util.List;
+import pl.vrajani.utility.MathUtil;
 
 @Component
 public class AnalyseBuy implements Analyser {
-    public static Logger log = LoggerFactory.getLogger(AnalyseBuy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AnalyseBuy.class);
 
     @Override
-    public boolean analyse(CryptoHistData cryptoHistData, CryptoCurrencyStatus cryptoCurrencyStatus) {
+    public boolean analyse(Double initialPrice, Double lastPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
         if( cryptoCurrencyStatus.isShouldBuy() && cryptoCurrencyStatus.getWaitCounter() == 0){
-            List<Datum> datumList = cryptoHistData.getData();
-
-            Double buyPercent = getPercent(datumList.get(datumList.size()-1).getClose(), datumList.get(0).getClose());
-            log.info("Buy Percent: "+buyPercent);
-            return buyPercent < 98.46;
+            Double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
+            LOG.info("Buy Percent: "+buyPercent);
+            return buyPercent < 99.21;
         } else if(cryptoCurrencyStatus.getWaitCounter() > 0){
             cryptoCurrencyStatus.setWaitCounter(cryptoCurrencyStatus.getWaitCounter()-1);
         }
