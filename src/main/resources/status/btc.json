@@ -1,1 +1,33 @@
-{"symbol":"BTC","lastBuyPrice":4079.18,"lastSalePrice":4083.67,"shouldBuy":true,"shouldSell":false,"buyTotal":56.0,"sellTotal":38.24,"waitCounter":0}
+{
+  "symbol" : "BTC",
+  "buyTotal" : 0.0,
+  "sellTotal" : 12.84,
+  "highRange" : {
+    "lastBuyPrice" : 0.0,
+    "lastSalePrice" : 0.0,
+    "shouldBuy" : true,
+    "profitPercent" : 7.0,
+    "buyAmount" : 12.0
+  },
+  "mediumRange" : {
+    "lastBuyPrice" : 0.0,
+    "lastSalePrice" : 0.0,
+    "shouldBuy" : true,
+    "profitPercent" : 4.5,
+    "buyAmount" : 10.0
+  },
+  "lowRange" : {
+    "lastBuyPrice" : 0.0,
+    "lastSalePrice" : 0.0,
+    "shouldBuy" : true,
+    "profitPercent" : 3.0,
+    "buyAmount" : 8.0
+  },
+  "dailyRange" : {
+    "lastBuyPrice" : 3651.9076801250003,
+    "lastSalePrice" : 3696.7972543749997,
+    "shouldBuy" : true,
+    "profitPercent" : 1.0,
+    "buyAmount" : 5.0
+  }
+}

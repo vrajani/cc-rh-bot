@@ -1,9 +1,9 @@
 package pl.vrajani.service.analyse;
 
+import org.openqa.selenium.WebDriver;
 import pl.vrajani.model.CryptoCurrencyStatus;
-import pl.vrajani.model.CryptoHistData;
 
 @FunctionalInterface
 public interface Analyser {
-    boolean analyse(Double initialPrice, Double lastPrice, CryptoCurrencyStatus cryptoCurrencyStatus);
+    void analyse(Double initialPrice, Double lastPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver);
 }

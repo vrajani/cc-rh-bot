@@ -3,30 +3,12 @@ package pl.vrajani.model;
 public class CryptoCurrencyStatus {
 
     String symbol;
-    Double lastBuyPrice;
-    Double lastSalePrice;
-    boolean shouldBuy;
-    boolean shouldSell;
     Double buyTotal;
     Double sellTotal;
-    int waitCounter;
-
-
-    public Double getLastBuyPrice() {
-        return lastBuyPrice;
-    }
-
-    public void setLastBuyPrice(Double lastBuyPrice) {
-        this.lastBuyPrice = lastBuyPrice;
-    }
-
-    public Double getLastSalePrice() {
-        return lastSalePrice;
-    }
-
-    public void setLastSalePrice(Double lastSalePrice) {
-        this.lastSalePrice = lastSalePrice;
-    }
+    ActionConfig highRange; // >10
+    ActionConfig mediumRange; // 5-10
+    ActionConfig lowRange; // 2-5
+    ActionConfig dailyRange; // usual
 
     public String getSymbol() {
         return symbol;
@@ -36,31 +18,15 @@ public class CryptoCurrencyStatus {
         this.symbol = symbol;
     }
 
-
-    public boolean isShouldBuy() {
-        return shouldBuy;
-    }
-
-    public void setShouldBuy(boolean shouldBuy) {
-        this.shouldBuy = shouldBuy;
-    }
-
-    public boolean isShouldSell() {
-        return shouldSell;
-    }
-
-    public void setShouldSell(boolean shouldSell) {
-        this.shouldSell = shouldSell;
-    }
-
     @Override
     public String toString() {
         return new StringBuilder().append("{[symbol=").append(symbol)
-                .append("],[lastBuyPrice=").append(lastBuyPrice)
-                .append("],[lastSalePrice=").append(lastSalePrice)
+                .append("],[highRange=").append(highRange)
+                .append("],[mediumRange=").append(mediumRange)
+                .append("],[lowRange=").append(lowRange)
+                .append("],[dailyRange=").append(dailyRange)
                 .append("],[buyTotal=").append(buyTotal)
                 .append("],[sellTotal=").append(sellTotal)
-                .append("],[waitCounter=").append(waitCounter)
                 .append("]}").toString();
     }
 
@@ -80,11 +46,35 @@ public class CryptoCurrencyStatus {
         this.sellTotal = sellTotal;
     }
 
-    public int getWaitCounter() {
-        return waitCounter;
+    public ActionConfig getHighRange() {
+        return highRange;
     }
 
-    public void setWaitCounter(int waitCounter) {
-        this.waitCounter = waitCounter;
+    public void setHighRange(ActionConfig highRange) {
+        this.highRange = highRange;
+    }
+
+    public ActionConfig getMediumRange() {
+        return mediumRange;
+    }
+
+    public void setMediumRange(ActionConfig mediumRange) {
+        this.mediumRange = mediumRange;
+    }
+
+    public ActionConfig getLowRange() {
+        return lowRange;
+    }
+
+    public void setLowRange(ActionConfig lowRange) {
+        this.lowRange = lowRange;
+    }
+
+    public ActionConfig getDailyRange() {
+        return dailyRange;
+    }
+
+    public void setDailyRange(ActionConfig dailyRange) {
+        this.dailyRange = dailyRange;
     }
 }

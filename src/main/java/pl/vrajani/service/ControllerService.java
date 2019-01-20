@@ -27,7 +27,6 @@ import java.util.Map;
 public class ControllerService {
     private static Logger LOG = LoggerFactory.getLogger(ControllerService.class);
     private static final long INTERVAL_RATE = 100000;
-
     private WebDriver driver;
 
     @Autowired
@@ -40,13 +39,7 @@ public class ControllerService {
     private AnalyseSell analyseSell;
 
     @Autowired
-    private ActionService actionService;
-
-    @Autowired
     private Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Scheduled(fixedRate = INTERVAL_RATE)
     public void performCheck(){
@@ -107,22 +100,8 @@ public class ControllerService {
                     LOG.info("25 Mins ago Value: " + initialPrice);
                     LOG.info("Current Value: " +lastPrice);
 
-                    Double resetValue = MathUtil.getPercentAmount(currencyStatus.getLastBuyPrice(), lastPrice);
-                    LOG.info("Reset Data::: "+ str + " with reset value::: "+ resetValue);
-                    if(resetValue > 105.0 && !currencyStatus.isShouldBuy()){
-                        LOG.info("Resetting::: "+ str + " with reset value::: "+ resetValue);
-                        currencyStatus.setShouldBuy(true);
-                    }
-
-                    if (analyseBuy.analyse(initialPrice, lastPrice, currencyStatus)){
-                        LOG.info("Buying: "+ str + " with price: "+ lastPrice);
-                        actionService.buy(currencyStatus, driver, initialPrice);
-                    } else if (analyseSell.analyse(initialPrice, lastPrice, currencyStatus)){
-                        LOG.info("Selling: "+ str + " with price: "+ lastPrice);
-                        actionService.sell(currencyStatus, driver, lastPrice);
-                    } else {
-                        LOG.info("Status: No buy or sell!!");
-                    }
+                    analyseBuy.analyse(initialPrice, lastPrice, currencyStatus, driver);
+                    analyseSell.analyse(initialPrice, lastPrice, currencyStatus, driver);
 
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
