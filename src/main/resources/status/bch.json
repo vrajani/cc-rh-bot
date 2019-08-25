@@ -1,8 +1,9 @@
 {
   "symbol" : "BCH",
-  "buyTotal" : 0.0,
-  "sellTotal" : 0.0,
+  "buyTotal" : 112.0,
+  "sellTotal" : 166.92000000000002,
   "highRange" : {
+    "power" : false,
     "lastBuyPrice" : 0.0,
     "lastSalePrice" : 0.0,
     "shouldBuy" : true,
@@ -10,6 +11,7 @@
     "buyAmount" : 12.0
   },
   "mediumRange" : {
+    "power" : false,
     "lastBuyPrice" : 0.0,
     "lastSalePrice" : 0.0,
     "shouldBuy" : true,
@@ -17,16 +19,18 @@
     "buyAmount" : 10.0
   },
   "lowRange" : {
-    "lastBuyPrice" : 0.0,
+    "power" : true,
+    "lastBuyPrice" : 289.8800563,
     "lastSalePrice" : 0.0,
     "shouldBuy" : true,
     "profitPercent" : 3.0,
-    "buyAmount" : 8.0
+    "buyAmount" : 5.0
   },
   "dailyRange" : {
-    "lastBuyPrice" : 129.78964075000005,
-    "lastSalePrice" : 128.824266875,
-    "shouldBuy" : true,
+    "power" : false,
+    "lastBuyPrice" : 143.77003750000003,
+    "lastSalePrice" : 138.98602775,
+    "shouldBuy" : false,
     "profitPercent" : 1.0,
     "buyAmount" : 5.0
   }

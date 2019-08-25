@@ -49,7 +49,7 @@ public class ActionService {
     }
 
     public ActionConfig buy(String symbol, WebDriver driver, Double buyPrice, ActionConfig actionConfig) throws IOException {
-        driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
+        driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
         ThreadWait.waitFor(2000);
 
         //driver.findElement(By.xpath("//h3[text()='Sell LTC']")).click();
@@ -70,8 +70,8 @@ public class ActionService {
     }
 
     public ActionConfig sell(String symbol, WebDriver driver, Double sellPrice, ActionConfig actionConfig) throws IOException {
-        driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
-        ThreadWait.waitFor(2000);
+        driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
+        ThreadWait.waitFor(6000);
 
         driver.findElement(By.xpath("//span[text()='Sell "+symbol.toUpperCase()+"']")).click();
         Double sellPriceToEnter = ((100 + actionConfig.getProfitPercent()) * actionConfig.getBuyAmount())/100;

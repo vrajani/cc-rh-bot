@@ -2,6 +2,7 @@ package pl.vrajani.model;
 
 public class ActionConfig {
 
+    boolean power;
     Double lastBuyPrice;
     Double lastSalePrice;
     boolean shouldBuy;
@@ -35,6 +36,7 @@ public class ActionConfig {
     @Override
     public String toString() {
         return new StringBuilder().append("{ActionConfig:[shouldBuy=").append(shouldBuy)
+                .append("],[power=").append(power)
                 .append("],[profitPercent=").append(profitPercent)
                 .append("],[lastBuyPrice=").append(lastBuyPrice)
                 .append("],[lastSalePrice=").append(lastSalePrice)
@@ -56,5 +58,13 @@ public class ActionConfig {
 
     public void setBuyAmount(Double buyAmount) {
         this.buyAmount = buyAmount;
+    }
+
+    public boolean isPower() {
+        return power;
+    }
+
+    public void setPower(boolean power) {
+        this.power = power;
     }
 }

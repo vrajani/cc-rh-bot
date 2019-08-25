@@ -8,15 +8,15 @@ import pl.vrajani.model.CryptoHistData;
 @Controller
 public class CryptoDataService {
 
-    public ResponseEntity<CryptoHistData> getHistoricalData(String symbol){
+    public ResponseEntity<CryptoHistData> getHistoricalData(String symbol, String limit, String aggregate){
         RestTemplate restTemplate = new RestTemplate();
         return  restTemplate.getForEntity("https://min-api.cryptocompare.com/data/histominute?fsym="+symbol
-                        +"&tsym=USD&limit=27&aggregate=1", CryptoHistData.class);
+                        +"&tsym=USD&limit="+ limit +"&aggregate="+aggregate , CryptoHistData.class);
     }
 
     public ResponseEntity<Object> getCurrentPrice (String symbol){
         RestTemplate restTemplate = new RestTemplate();
-        return restTemplate.getForEntity("https://min-api.cryptocompare.com/data/pricehistorical?fsym="+symbol
-                +"ETH&tsyms=USD", Object.class);
+        return restTemplate.getForEntity("https://min-api.cryptocompare.com/data/price?fsym="+symbol
+                +"&tsyms=USD", Object.class);
     }
 }

@@ -1,6 +1,5 @@
 package pl.vrajani.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -11,17 +10,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import pl.vrajani.config.Configuration;
-import pl.vrajani.model.*;
+import pl.vrajani.model.CryptoCurrencyStatus;
+import pl.vrajani.model.CryptoHistData;
+import pl.vrajani.model.Datum;
 import pl.vrajani.service.analyse.AnalyseBuy;
 import pl.vrajani.service.analyse.AnalyseSell;
 import pl.vrajani.utility.MathUtil;
 import pl.vrajani.utility.ThreadWait;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class ControllerService {
@@ -40,6 +41,9 @@ public class ControllerService {
 
     @Autowired
     private Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap;
+
+    @Autowired
+    private ConfigRefresher configRefresher;
 
     @Scheduled(fixedRate = INTERVAL_RATE)
     public void performCheck(){
@@ -80,28 +84,29 @@ public class ControllerService {
             }
         }
 
-        LOG.info("Logged into RH");
         checkAllCrypto();
     }
 
     private void checkAllCrypto() {
 
         if(!isDownTime()) {
+            configRefresher.refresh();
             Configuration.CRYPTO.stream().forEach(str -> {
                 try {
                     LOG.info("Working with Crypto: " + str);
                     CryptoCurrencyStatus currencyStatus = cryptoCurrencyStatusMap.get(str);
                     LOG.info("Crypto Details: "+ currencyStatus.toString());
 
-                    CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str).getBody();
+                    CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str, "50", "1").getBody();
+                    Double midNightPrice = getMidNightPrice(str);
 
                     Double initialPrice = getESTInitialPrice(cryptoHistData);
                     Double lastPrice = getESTLastPrice(cryptoHistData);
-                    LOG.info("25 Mins ago Value: " + initialPrice);
+                    LOG.info("50 Mins avg Value: " + initialPrice);
                     LOG.info("Current Value: " +lastPrice);
 
-                    analyseBuy.analyse(initialPrice, lastPrice, currencyStatus, driver);
-                    analyseSell.analyse(initialPrice, lastPrice, currencyStatus, driver);
+                    analyseBuy.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus, driver);
+                    analyseSell.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus, driver);
 
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
@@ -115,9 +120,30 @@ public class ControllerService {
 
     }
 
+    private Double getMidNightPrice(String str) {
+        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        int currentMinute = Calendar.getInstance().get(Calendar.MINUTE);
+        int limit = currentHour * 2;
+        if(currentMinute > 30){
+            limit += 1;
+        }
+        CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str, String.valueOf(limit), "30").getBody();
+
+        return MathUtil.getAmount(cryptoHistData.getData().get(0).getClose(), 99.40);
+    }
+
     private Double getESTInitialPrice(CryptoHistData cryptoHistData) {
         List<Datum> datumList = cryptoHistData.getData();
-        return MathUtil.getAmount(datumList.get(0).getClose(), 99.50);
+        AtomicReference<Double> totalValue = new AtomicReference<>(0D);
+        AtomicInteger count = new AtomicInteger(0);
+        datumList.parallelStream().forEach(datum -> {
+            totalValue.updateAndGet(v -> v + datum.getClose());
+            count.getAndIncrement();
+        });
+
+
+        double initialPrice = totalValue.get()/count.doubleValue();
+        return MathUtil.getAmount(initialPrice, 99.50);
     }
 
     private Double getESTLastPrice (CryptoHistData cryptoHistData){

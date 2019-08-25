@@ -1,8 +1,9 @@
 {
   "symbol" : "LTC",
-  "buyTotal" : 0.0,
-  "sellTotal" : 0.0,
+  "buyTotal" : 20.0,
+  "sellTotal" : 51.36,
   "highRange" : {
+    "power" : false,
     "lastBuyPrice" : 0.0,
     "lastSalePrice" : 0.0,
     "shouldBuy" : true,
@@ -10,22 +11,25 @@
     "buyAmount" : 12.0
   },
   "mediumRange" : {
-    "lastBuyPrice" : 0.0,
+    "power" : false,
+    "lastBuyPrice" : 46.452594875,
     "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
+    "shouldBuy" : false,
     "profitPercent" : 4.5,
     "buyAmount" : 10.0
   },
   "lowRange" : {
-    "lastBuyPrice" : 0.0,
-    "lastSalePrice" : 0.0,
+    "power" : true,
+    "lastBuyPrice" : 69.654104375,
+    "lastSalePrice" : 71.24095525000001,
     "shouldBuy" : true,
     "profitPercent" : 3.0,
-    "buyAmount" : 8.0
+    "buyAmount" : 5.0
   },
   "dailyRange" : {
-    "lastBuyPrice" : 31.708729650000006,
-    "lastSalePrice" : 32.480108375,
+    "power" : false,
+    "lastBuyPrice" : 50.616968375,
+    "lastSalePrice" : 50.7594275,
     "shouldBuy" : true,
     "profitPercent" : 1.0,
     "buyAmount" : 5.0
