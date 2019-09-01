@@ -22,9 +22,9 @@
     "power" : true,
     "lastBuyPrice" : 10265.468217575002,
     "lastSalePrice" : 0.0,
-    "shouldBuy" : false,
-    "profitPercent" : 3.0,
-    "buyAmount" : 5.0
+    "shouldBuy" : true,
+    "profitPercent" : 1.5,
+    "buyAmount" : 2.0
   },
   "dailyRange" : {
     "power" : false,

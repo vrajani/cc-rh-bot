@@ -1,6 +1,6 @@
 {
   "symbol" : "ETH",
-  "buyTotal" : 15.0,
+  "buyTotal" : 25.0,
   "sellTotal" : 0.0,
   "highRange" : {
     "power" : false,
@@ -20,10 +20,10 @@
   },
   "lowRange" : {
     "power" : true,
-    "lastBuyPrice" : 180.74372507500001,
+    "lastBuyPrice" : 171.7704917,
     "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
-    "profitPercent" : 3.0,
+    "shouldBuy" : false,
+    "profitPercent" : 2.0,
     "buyAmount" : 5.0
   },
   "dailyRange" : {

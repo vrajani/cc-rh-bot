@@ -1,7 +1,7 @@
 {
   "symbol" : "LTC",
-  "buyTotal" : 20.0,
-  "sellTotal" : 51.36,
+  "buyTotal" : 30.0,
+  "sellTotal" : 56.36,
   "highRange" : {
     "power" : false,
     "lastBuyPrice" : 0.0,
@@ -20,10 +20,10 @@
   },
   "lowRange" : {
     "power" : true,
-    "lastBuyPrice" : 69.654104375,
-    "lastSalePrice" : 71.24095525000001,
+    "lastBuyPrice" : 62.108656200000006,
+    "lastSalePrice" : 63.52828737500001,
     "shouldBuy" : true,
-    "profitPercent" : 3.0,
+    "profitPercent" : 1.5,
     "buyAmount" : 5.0
   },
   "dailyRange" : {

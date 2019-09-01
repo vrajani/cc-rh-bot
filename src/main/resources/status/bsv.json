@@ -1,7 +1,7 @@
 {
-  "symbol" : "BCH",
-  "buyTotal" : 122.0,
-  "sellTotal" : 166.92000000000002,
+  "symbol" : "BSV",
+  "buyTotal" : 15.0,
+  "sellTotal" : 5.0,
   "highRange" : {
     "power" : false,
     "lastBuyPrice" : 0.0,
@@ -20,10 +20,10 @@
   },
   "lowRange" : {
     "power" : true,
-    "lastBuyPrice" : 272.974682925,
-    "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
-    "profitPercent" : 2.25,
+    "lastBuyPrice" : 127.71736917499999,
+    "lastSalePrice" : 132.241146625,
+    "shouldBuy" : false,
+    "profitPercent" : 2.0,
     "buyAmount" : 5.0
   },
   "dailyRange" : {

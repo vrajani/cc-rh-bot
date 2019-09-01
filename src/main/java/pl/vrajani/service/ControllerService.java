@@ -20,14 +20,13 @@ import pl.vrajani.utility.ThreadWait;
 
 import java.util.Calendar;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class ControllerService {
     private static Logger LOG = LoggerFactory.getLogger(ControllerService.class);
-    private static final long INTERVAL_RATE = 100000;
+    private static final long INTERVAL_RATE = 120000;
     private WebDriver driver;
 
     @Autowired
@@ -38,9 +37,6 @@ public class ControllerService {
 
     @Autowired
     private AnalyseSell analyseSell;
-
-    @Autowired
-    private Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap;
 
     @Autowired
     private ConfigRefresher configRefresher;
@@ -90,24 +86,24 @@ public class ControllerService {
     private void checkAllCrypto() {
 
         if(!isDownTime()) {
-            configRefresher.refresh();
             Configuration.CRYPTO.stream().forEach(str -> {
                 try {
                     LOG.info("Working with Crypto: " + str);
-                    CryptoCurrencyStatus currencyStatus = cryptoCurrencyStatusMap.get(str);
+                    CryptoCurrencyStatus currencyStatus = configRefresher.refresh(str);
                     LOG.info("Crypto Details: "+ currencyStatus.toString());
 
-                    CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str, "50", "1").getBody();
+                    CryptoHistData crypto50mHistData = cryptoDataService.getHistoricalData(str, "50", "1").getBody();
                     Double midNightPrice = getMidNightPrice(str);
 
-                    Double initialPrice = getESTInitialPrice(cryptoHistData);
-                    Double lastPrice = getESTLastPrice(cryptoHistData);
+                    Double initialPrice = MathUtil.getAmount(crypto50mHistData.getData().get(0).getClose(), 99.50);
+                    Double avgPrice = getESTAvgPrice(crypto50mHistData);
+                    Double lastPrice = MathUtil.getAmount(crypto50mHistData.getData().get(49).getClose(), 99.50);
                     LOG.info("50 Mins avg Value: " + initialPrice);
                     LOG.info("Current Value: " +lastPrice);
 
-                    analyseBuy.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus, driver);
-                    analyseSell.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus, driver);
-
+                    currencyStatus = analyseBuy.analyse(initialPrice, avgPrice, lastPrice, midNightPrice, currencyStatus, driver);
+                    currencyStatus = analyseSell.analyse(initialPrice, avgPrice, lastPrice, midNightPrice, currencyStatus, driver);
+                    configRefresher.saveStatus(currencyStatus);
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
                 } finally {
@@ -132,7 +128,7 @@ public class ControllerService {
         return MathUtil.getAmount(cryptoHistData.getData().get(0).getClose(), 99.40);
     }
 
-    private Double getESTInitialPrice(CryptoHistData cryptoHistData) {
+    private Double getESTAvgPrice(CryptoHistData cryptoHistData) {
         List<Datum> datumList = cryptoHistData.getData();
         AtomicReference<Double> totalValue = new AtomicReference<>(0D);
         AtomicInteger count = new AtomicInteger(0);
@@ -144,11 +140,6 @@ public class ControllerService {
 
         double initialPrice = totalValue.get()/count.doubleValue();
         return MathUtil.getAmount(initialPrice, 99.50);
-    }
-
-    private Double getESTLastPrice (CryptoHistData cryptoHistData){
-        List<Datum> datumList = cryptoHistData.getData();
-        return MathUtil.getAmount(datumList.get(datumList.size()-1).getClose(), 99.50);
     }
 
     private boolean isDownTime() {

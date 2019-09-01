@@ -5,5 +5,5 @@ import pl.vrajani.model.CryptoCurrencyStatus;
 
 @FunctionalInterface
 public interface Analyser {
-    void analyse(Double initialPrice, Double lastPrice, Double midnightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver);
+    CryptoCurrencyStatus analyse(Double initialPrice, Double avgPrice, Double lastPrice, Double midnightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver);
 }

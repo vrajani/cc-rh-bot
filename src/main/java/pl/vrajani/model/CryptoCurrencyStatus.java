@@ -21,10 +21,10 @@ public class CryptoCurrencyStatus {
     @Override
     public String toString() {
         return new StringBuilder().append("{[symbol=").append(symbol)
-                .append("],[highRange=").append(highRange)
-                .append("],[mediumRange=").append(mediumRange)
+//                .append("],[highRange=").append(highRange)
+//                .append("],[mediumRange=").append(mediumRange)
                 .append("],[lowRange=").append(lowRange)
-                .append("],[dailyRange=").append(dailyRange)
+//                .append("],[dailyRange=").append(dailyRange)
                 .append("],[buyTotal=").append(buyTotal)
                 .append("],[sellTotal=").append(sellTotal)
                 .append("]}").toString();

@@ -14,7 +14,6 @@ import pl.vrajani.utility.ThreadWait;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Service
@@ -23,30 +22,6 @@ public class ActionService {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap;
-
-    public static void main(String[] args) throws IOException {
-        ActionService actionService = new ActionService();
-        actionService.objectMapper = new ObjectMapper();
-
-        CryptoCurrencyStatus currencyStatus1 = new CryptoCurrencyStatus();
-        currencyStatus1.setHighRange(new ActionConfig());
-        currencyStatus1.setMediumRange(new ActionConfig());
-        currencyStatus1.setLowRange(new ActionConfig());
-        ActionConfig dailyConfig = new ActionConfig();
-        dailyConfig.setLastBuyPrice(31.708729650000006);
-        dailyConfig.setLastSalePrice(32.480108375);
-        dailyConfig.setShouldBuy(true);
-        dailyConfig.setProfitPercent(1.0);
-        dailyConfig.setBuyAmount(5.0);
-        currencyStatus1.setDailyRange(dailyConfig);
-        currencyStatus1.setSymbol("LTC");
-        currencyStatus1.setBuyTotal(0.0);
-        currencyStatus1.setSellTotal(0.0);
-        actionService.objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/main/resources/status/ltc.json"), currencyStatus1);
-    }
 
     public ActionConfig buy(String symbol, WebDriver driver, Double buyPrice, ActionConfig actionConfig) throws IOException {
         driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
@@ -74,7 +49,7 @@ public class ActionService {
         ThreadWait.waitFor(6000);
 
         driver.findElement(By.xpath("//span[text()='Sell "+symbol.toUpperCase()+"']")).click();
-        Double sellPriceToEnter = ((100 + actionConfig.getProfitPercent()) * actionConfig.getBuyAmount())/100;
+        Double sellPriceToEnter = actionConfig.getBuyAmount();
         driver.findElement(By.name("amount")).sendKeys(sellPriceToEnter.toString());
         ThreadWait.waitFor(2000);
         driver.findElement(By.xpath("//button[@type='submit']")).click();
@@ -86,4 +61,27 @@ public class ActionService {
         actionConfig.setLastSalePrice(MathUtil.getAmount(sellPrice, 99.25));
         return actionConfig;
     }
+
+
+    public static void main(String[] args) throws IOException {
+        ActionService actionService = new ActionService();
+        actionService.objectMapper = new ObjectMapper();
+
+        CryptoCurrencyStatus currencyStatus1 = new CryptoCurrencyStatus();
+        currencyStatus1.setHighRange(new ActionConfig());
+        currencyStatus1.setMediumRange(new ActionConfig());
+        currencyStatus1.setLowRange(new ActionConfig());
+        ActionConfig dailyConfig = new ActionConfig();
+        dailyConfig.setLastBuyPrice(31.708729650000006);
+        dailyConfig.setLastSalePrice(32.480108375);
+        dailyConfig.setShouldBuy(true);
+        dailyConfig.setProfitPercent(1.0);
+        dailyConfig.setBuyAmount(5.0);
+        currencyStatus1.setDailyRange(dailyConfig);
+        currencyStatus1.setSymbol("LTC");
+        currencyStatus1.setBuyTotal(0.0);
+        currencyStatus1.setSellTotal(0.0);
+        actionService.objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/main/resources/status/ltc.json"), currencyStatus1);
+    }
+
 }

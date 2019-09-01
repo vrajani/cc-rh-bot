@@ -22,13 +22,10 @@ public class AnalyseSell implements Analyser {
     private ActionService actionService;
 
     @Autowired
-    private Map<String, CryptoCurrencyStatus> cryptoCurrencyStatusMap;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
     @Override
-    public void analyse(Double initialPrice, Double lastPrice, Double migNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver) {
+    public CryptoCurrencyStatus analyse(Double initialPrice, Double avgPrice, Double lastPrice, Double migNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver) {
 
         // High Range
         if(cryptoCurrencyStatus.getHighRange().isPower() && !cryptoCurrencyStatus.getHighRange().isShouldBuy()){
@@ -96,13 +93,6 @@ public class AnalyseSell implements Analyser {
                 }
             }
         }
-
-        cryptoCurrencyStatusMap.put(cryptoCurrencyStatus.getSymbol().toUpperCase(), cryptoCurrencyStatus);
-        //Finally save the new state, for just in case.
-        try {
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/main/resources/status/"+ cryptoCurrencyStatus.getSymbol().toLowerCase()+".json"), cryptoCurrencyStatus);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        return cryptoCurrencyStatus;
     }
 }
