@@ -24,13 +24,6 @@ public class ConfigRefresher {
         }
     }
 
-    void saveStatus(CryptoCurrencyStatus cryptoCurrencyStatus){
-        //Finally save the new state, for just in case.
-        try {
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/main/resources/status/"+ cryptoCurrencyStatus.getSymbol().toLowerCase()+".json"), cryptoCurrencyStatus);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+
 
 }

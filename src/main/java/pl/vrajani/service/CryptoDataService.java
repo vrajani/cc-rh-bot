@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.client.RestTemplate;
 import pl.vrajani.model.CryptoHistData;
+import pl.vrajani.model.LatestPrice;
 
 @Controller
 public class CryptoDataService {
@@ -14,9 +15,9 @@ public class CryptoDataService {
                         +"&tsym=USD&limit="+ limit +"&aggregate="+aggregate , CryptoHistData.class);
     }
 
-    public ResponseEntity<Object> getCurrentPrice (String symbol){
+    public Double getCurrentPrice (String symbol){
         RestTemplate restTemplate = new RestTemplate();
         return restTemplate.getForEntity("https://min-api.cryptocompare.com/data/price?fsym="+symbol
-                +"&tsyms=USD", Object.class);
+                +"&tsyms=USD", LatestPrice.class).getBody().getUSD();
     }
 }

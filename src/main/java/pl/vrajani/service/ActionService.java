@@ -68,16 +68,13 @@ public class ActionService {
         actionService.objectMapper = new ObjectMapper();
 
         CryptoCurrencyStatus currencyStatus1 = new CryptoCurrencyStatus();
-        currencyStatus1.setHighRange(new ActionConfig());
-        currencyStatus1.setMediumRange(new ActionConfig());
-        currencyStatus1.setLowRange(new ActionConfig());
+        currencyStatus1.setRange(new ActionConfig());
         ActionConfig dailyConfig = new ActionConfig();
         dailyConfig.setLastBuyPrice(31.708729650000006);
         dailyConfig.setLastSalePrice(32.480108375);
         dailyConfig.setShouldBuy(true);
         dailyConfig.setProfitPercent(1.0);
         dailyConfig.setBuyAmount(5.0);
-        currencyStatus1.setDailyRange(dailyConfig);
         currencyStatus1.setSymbol("LTC");
         currencyStatus1.setBuyTotal(0.0);
         currencyStatus1.setSellTotal(0.0);

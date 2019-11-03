@@ -1,37 +1,13 @@
 {
   "symbol" : "ETH",
-  "buyTotal" : 25.0,
-  "sellTotal" : 0.0,
-  "highRange" : {
-    "power" : false,
-    "lastBuyPrice" : 0.0,
-    "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
-    "profitPercent" : 7.0,
-    "buyAmount" : 12.0
-  },
-  "mediumRange" : {
-    "power" : false,
-    "lastBuyPrice" : 0.0,
-    "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
-    "profitPercent" : 4.5,
-    "buyAmount" : 10.0
-  },
-  "lowRange" : {
+  "buyTotal" : 70.0,
+  "sellTotal" : 35.0,
+  "range" : {
     "power" : true,
-    "lastBuyPrice" : 171.7704917,
-    "lastSalePrice" : 0.0,
-    "shouldBuy" : false,
-    "profitPercent" : 2.0,
-    "buyAmount" : 5.0
-  },
-  "dailyRange" : {
-    "power" : false,
-    "lastBuyPrice" : 136.8690757,
-    "lastSalePrice" : 137.228211,
+    "lastBuyPrice" : 184.31318807500003,
+    "lastSalePrice" : 180.610733375,
     "shouldBuy" : true,
-    "profitPercent" : 1.0,
+    "profitPercent" : 2.0,
     "buyAmount" : 5.0
   }
 }

@@ -93,17 +93,18 @@ public class ControllerService {
                     LOG.info("Crypto Details: "+ currencyStatus.toString());
 
                     CryptoHistData crypto50mHistData = cryptoDataService.getHistoricalData(str, "50", "1").getBody();
-                    Double midNightPrice = getMidNightPrice(str);
-
                     Double initialPrice = MathUtil.getAmount(crypto50mHistData.getData().get(0).getClose(), 99.50);
+
+                    Double midNightPrice = getMidNightPrice(str);
                     Double avgPrice = getESTAvgPrice(crypto50mHistData);
-                    Double lastPrice = MathUtil.getAmount(crypto50mHistData.getData().get(49).getClose(), 99.50);
+                    Double lastPrice = MathUtil.getAmount(cryptoDataService.getCurrentPrice(str), 99.50);
                     LOG.info("50 Mins avg Value: " + initialPrice);
                     LOG.info("Current Value: " +lastPrice);
 
-                    currencyStatus = analyseBuy.analyse(initialPrice, avgPrice, lastPrice, midNightPrice, currencyStatus, driver);
-                    currencyStatus = analyseSell.analyse(initialPrice, avgPrice, lastPrice, midNightPrice, currencyStatus, driver);
-                    configRefresher.saveStatus(currencyStatus);
+                    boolean bought = analyseBuy.analyse(initialPrice, avgPrice, lastPrice, midNightPrice, currencyStatus, driver);
+                    if(!bought) {
+                        analyseSell.analyse(initialPrice, avgPrice, lastPrice, midNightPrice, currencyStatus, driver);
+                    }
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
                 } finally {
@@ -117,13 +118,7 @@ public class ControllerService {
     }
 
     private Double getMidNightPrice(String str) {
-        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int currentMinute = Calendar.getInstance().get(Calendar.MINUTE);
-        int limit = currentHour * 2;
-        if(currentMinute > 30){
-            limit += 1;
-        }
-        CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str, String.valueOf(limit), "30").getBody();
+        CryptoHistData cryptoHistData = cryptoDataService.getHistoricalData(str, "48", "30").getBody();
 
         return MathUtil.getAmount(cryptoHistData.getData().get(0).getClose(), 99.40);
     }

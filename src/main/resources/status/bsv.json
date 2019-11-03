@@ -1,37 +1,13 @@
 {
   "symbol" : "BSV",
-  "buyTotal" : 15.0,
-  "sellTotal" : 5.0,
-  "highRange" : {
-    "power" : false,
-    "lastBuyPrice" : 0.0,
-    "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
-    "profitPercent" : 7.0,
-    "buyAmount" : 12.0
-  },
-  "mediumRange" : {
-    "power" : false,
-    "lastBuyPrice" : 0.0,
-    "lastSalePrice" : 0.0,
-    "shouldBuy" : true,
-    "profitPercent" : 4.5,
-    "buyAmount" : 10.0
-  },
-  "lowRange" : {
+  "buyTotal" : 125.0,
+  "sellTotal" : 65.0,
+  "range" : {
     "power" : true,
-    "lastBuyPrice" : 127.71736917499999,
-    "lastSalePrice" : 132.241146625,
-    "shouldBuy" : false,
-    "profitPercent" : 2.0,
-    "buyAmount" : 5.0
-  },
-  "dailyRange" : {
-    "power" : false,
-    "lastBuyPrice" : 143.77003750000003,
-    "lastSalePrice" : 138.98602775,
-    "shouldBuy" : false,
-    "profitPercent" : 1.0,
+    "lastBuyPrice" : 134.50926405,
+    "lastSalePrice" : 87.377318,
+    "shouldBuy" : true,
+    "profitPercent" : 2.25,
     "buyAmount" : 5.0
   }
 }
