@@ -38,7 +38,7 @@ public class AnalyseBuy implements Analyser {
         if(cryptoCurrencyStatus.getRange().isPower() && cryptoCurrencyStatus.getRange().isShouldBuy()){
             LOG.info("Checking Low Range Buying....");
 
-            if (buyPercent < 98.1 || avgBuyPercent < 98.5){
+            if (buyPercent < 98.4 || avgBuyPercent < 98.7 || midNightPercent < 97.0){
                 try {
                     LOG.info("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                     cryptoCurrencyStatus.setRange(actionService.buy(cryptoCurrencyStatus.getSymbol(), driver, lastPrice, cryptoCurrencyStatus.getRange()));
