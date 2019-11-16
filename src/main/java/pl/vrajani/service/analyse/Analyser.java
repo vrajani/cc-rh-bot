@@ -9,7 +9,7 @@ import java.io.IOException;
 
 @FunctionalInterface
 public interface Analyser {
-    boolean analyse(Double initialPrice, Double avgPrice, Double lastPrice, Double midnightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver);
+    boolean analyse(Double initialPrice, Double lastPrice, Double midnightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver);
 
     default void saveStatus(CryptoCurrencyStatus cryptoCurrencyStatus, ObjectMapper objectMapper){
         //Finally save the new state, for just in case.

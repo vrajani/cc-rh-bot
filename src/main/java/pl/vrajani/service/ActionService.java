@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pl.vrajani.model.ActionConfig;
 import pl.vrajani.model.CryptoCurrencyStatus;
+import pl.vrajani.request.APIService;
 import pl.vrajani.utility.MathUtil;
 import pl.vrajani.utility.ThreadWait;
 
@@ -23,42 +24,51 @@ public class ActionService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    public ActionConfig buy(String symbol, WebDriver driver, Double buyPrice, ActionConfig actionConfig) throws IOException {
-        driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
-        ThreadWait.waitFor(2000);
+    @Autowired
+    private APIService apiService;
 
-        //driver.findElement(By.xpath("//h3[text()='Sell LTC']")).click();
-        driver.findElement(By.name("amount")).sendKeys(actionConfig.getBuyAmount().toString());
-        ThreadWait.waitFor(2000);
-        try {
-            driver.findElement(By.xpath("//button[@type='submit']")).click();
-            ThreadWait.waitFor(2000);
-            driver.findElement(By.xpath("//button[@type='submit']")).click();
-        } catch (NoSuchElementException exception) {
-            LOG.error("Not enough Cash!!!!!");
-            return actionConfig;
-        }
-        ThreadWait.waitFor(2000);
+    public ActionConfig buy(String symbol, WebDriver driver, Double buyPrice, ActionConfig actionConfig) throws IOException {
+//        driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
+//        ThreadWait.waitFor(2000);
+//
+//        //driver.findElement(By.xpath("//h3[text()='Sell LTC']")).click();
+//        driver.findElement(By.name("amount")).sendKeys(actionConfig.getBuyAmount().toString());
+//        ThreadWait.waitFor(2000);
+//        try {
+//            driver.findElement(By.xpath("//button[@type='submit']")).click();
+//            ThreadWait.waitFor(2000);
+//            driver.findElement(By.xpath("//button[@type='submit']")).click();
+//        } catch (NoSuchElementException exception) {
+//            LOG.error("Not enough Cash!!!!!");
+//            return actionConfig;
+//        }
+//        ThreadWait.waitFor(2000);
+        double v = buyPrice.doubleValue() / actionConfig.getBuyAmount();
+        apiService.buyCrypto(symbol,String.valueOf(v), String.valueOf(buyPrice));
         actionConfig.setShouldBuy(false);
-        actionConfig.setLastBuyPrice(MathUtil.getAmount(buyPrice, 99.65));
+        actionConfig.setLastBuyPrice(buyPrice);
         return actionConfig;
     }
 
     public ActionConfig sell(String symbol, WebDriver driver, Double sellPrice, ActionConfig actionConfig) throws IOException {
-        driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
-        ThreadWait.waitFor(6000);
+//        driver.get("https://robinhood.com/crypto/" + symbol);//driver.findElement(By.partialLinkText(symbol.toUpperCase())).click();
+//        ThreadWait.waitFor(6000);
+//
+//        driver.findElement(By.xpath("//span[text()='Sell "+symbol.toUpperCase()+"']")).click();
+//        Double sellPriceToEnter = actionConfig.getBuyAmount();
+//        driver.findElement(By.name("amount")).sendKeys(sellPriceToEnter.toString());
+//        ThreadWait.waitFor(2000);
+//        driver.findElement(By.xpath("//button[@type='submit']")).click();
+//        ThreadWait.waitFor(2000);
+//        driver.findElement(By.xpath("//button[@type='submit']")).click();
+//
+//        ThreadWait.waitFor(2000);
+//
 
-        driver.findElement(By.xpath("//span[text()='Sell "+symbol.toUpperCase()+"']")).click();
-        Double sellPriceToEnter = actionConfig.getBuyAmount();
-        driver.findElement(By.name("amount")).sendKeys(sellPriceToEnter.toString());
-        ThreadWait.waitFor(2000);
-        driver.findElement(By.xpath("//button[@type='submit']")).click();
-        ThreadWait.waitFor(2000);
-        driver.findElement(By.xpath("//button[@type='submit']")).click();
-
-        ThreadWait.waitFor(2000);
+        double v = sellPrice.doubleValue() / actionConfig.getBuyAmount();
+        apiService.buyCrypto(symbol,String.valueOf(v), String.valueOf(sellPrice));
         actionConfig.setShouldBuy(true);
-        actionConfig.setLastSalePrice(MathUtil.getAmount(sellPrice, 99.25));
+        actionConfig.setLastSalePrice(sellPrice);
         return actionConfig;
     }
 

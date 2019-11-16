@@ -23,13 +23,11 @@ public class AnalyseBuy implements Analyser {
     private ObjectMapper objectMapper;
 
     @Override
-    public boolean analyse(Double initialPrice, Double avgPrice, Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver) {
+    public boolean analyse(Double initialPrice, Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver) {
 
         Double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
         Double midNightPercent = MathUtil.getPercentAmount(lastPrice, midNightPrice);
-        Double avgBuyPercent = MathUtil.getPercentAmount(lastPrice, avgPrice);
         LOG.info("Buy Percent: "+buyPercent);
-        LOG.info("Average Buy Percent: "+avgBuyPercent);
         LOG.info("MidNight Percent: "+midNightPercent);
 
         boolean bought = false;
@@ -38,7 +36,7 @@ public class AnalyseBuy implements Analyser {
         if(cryptoCurrencyStatus.getRange().isPower() && cryptoCurrencyStatus.getRange().isShouldBuy()){
             LOG.info("Checking Low Range Buying....");
 
-            if (buyPercent < 98.4 || avgBuyPercent < 98.7 || midNightPercent < 97.0){
+            if (buyPercent < 98.4 || midNightPercent < 97.0){
                 try {
                     LOG.info("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                     cryptoCurrencyStatus.setRange(actionService.buy(cryptoCurrencyStatus.getSymbol(), driver, lastPrice, cryptoCurrencyStatus.getRange()));

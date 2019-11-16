@@ -23,7 +23,7 @@ public class AnalyseSell implements Analyser {
     private ObjectMapper objectMapper;
 
     @Override
-    public boolean analyse(Double initialPrice, Double avgPrice, Double lastPrice, Double migNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver) {
+    public boolean analyse(Double initialPrice, Double lastPrice, Double migNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus, WebDriver driver) {
 
         //Range
         boolean sold = false;
