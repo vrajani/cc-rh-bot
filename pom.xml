@@ -31,7 +31,7 @@
         <dependency>
             <groupId>pl.vrajani</groupId>
             <artifactId>rh-api-library</artifactId>
-            <version>1.0.3</version>
+            <version>1.0.4</version>
         </dependency>
 
         <dependency>

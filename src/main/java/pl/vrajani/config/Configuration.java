@@ -27,6 +27,8 @@ public class Configuration {
         properties.put("grant_type", "password");
         properties.put("client_id", System.getenv("client_id"));
         properties.put("account_id", System.getenv("account_id"));
+        properties.put("accountId", System.getenv("accountId"));
+
 
         return new APIService(properties);
     }
