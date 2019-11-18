@@ -5,6 +5,7 @@ public class CryptoCurrencyStatus {
     String symbol;
     Double buyTotal;
     Double sellTotal;
+    int stopCounter;
     ActionConfig range;
 
     public String getSymbol() {
@@ -18,6 +19,7 @@ public class CryptoCurrencyStatus {
     @Override
     public String toString() {
         return new StringBuilder().append("{[symbol=").append(symbol)
+                .append("],[stopCounter=").append(stopCounter)
                 .append("],[range=").append(range)
                 .append("],[buyTotal=").append(buyTotal)
                 .append("],[sellTotal=").append(sellTotal)
@@ -46,5 +48,13 @@ public class CryptoCurrencyStatus {
 
     public void setRange(ActionConfig range) {
         this.range = range;
+    }
+
+    public int getStopCounter() {
+        return stopCounter;
+    }
+
+    public void setStopCounter(int stopCounter) {
+        this.stopCounter = stopCounter;
     }
 }

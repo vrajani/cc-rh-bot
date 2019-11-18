@@ -2,6 +2,7 @@
   "symbol" : "BSV",
   "buyTotal" : 210.0,
   "sellTotal" : 135.0,
+  "stopCounter" : 0,
   "range" : {
     "power" : true,
     "lastBuyPrice" : 123.37452252500002,

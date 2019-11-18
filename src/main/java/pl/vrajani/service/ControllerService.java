@@ -32,6 +32,9 @@ public class ControllerService {
     @Autowired
     private ConfigRefresher configRefresher;
 
+    @Autowired
+    private ActionService actionService;
+
     @Scheduled(fixedRate = INTERVAL_RATE)
     public void checkAllCrypto() {
         LOG.info("Initiating the check::::");
@@ -58,6 +61,12 @@ public class ControllerService {
                     if(!bought) {
                         analyseSell.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus);
                     }
+                    if(currencyStatus.getStopCounter() > 0){
+                        currencyStatus.setStopCounter(currencyStatus.getStopCounter()-1);
+                        actionService.saveStatus(currencyStatus);
+                    }
+
+
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
                 } finally {

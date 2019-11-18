@@ -2,12 +2,13 @@
   "symbol" : "ETH",
   "buyTotal" : 90.0,
   "sellTotal" : 85.0,
+  "stopCounter" : 0,
   "range" : {
     "power" : true,
     "lastBuyPrice" : 177.98730642499999,
     "lastSalePrice" : 180.978761985,
     "shouldBuy" : true,
-    "profitPercent" : 1.75,
+    "profitPercent" : 1.5,
     "buyAmount" : 10.0
   }
 }

@@ -27,9 +27,13 @@ public class AnalyseSell implements Analyser {
             if (sellPercent > Double.valueOf("100") + cryptoCurrencyStatus.getRange().getProfitPercent() ){
                 log.info("Selling Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 sold = actionService.sell(cryptoCurrencyStatus, lastPrice);
-            } else if( sellPercent < Double.valueOf("90")){
+            } else if( sellPercent < Double.valueOf("93")){
                 log.info("Down by over 10%, continue to buy: "+ cryptoCurrencyStatus.getSymbol());
                 cryptoCurrencyStatus.getRange().setShouldBuy(true);
+            } else if(sellPercent < Double.valueOf("98.10")) {
+                log.info("Selling for Stop loss "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
+                cryptoCurrencyStatus.setStopCounter(360);
+                sold = actionService.sell(cryptoCurrencyStatus, lastPrice);
             }
         }
 

@@ -1,0 +1,68 @@
+{
+  "token": "",
+  "cryptoCurrencyStatuses": [{
+      "symbol" : "BCH",
+      "buyTotal" : 202.0,
+      "sellTotal" : 196.92000000000002,
+      "range" : {
+        "power" : true,
+        "lastBuyPrice" : 273.589423775,
+        "lastSalePrice" : 289.84225625000005,
+        "shouldBuy" : true,
+        "profitPercent" : 1.5,
+        "buyAmount" : 5.0
+      }
+    },
+    {
+      "symbol" : "BSV",
+      "buyTotal" : 210.0,
+      "sellTotal" : 135.0,
+      "range" : {
+        "power" : true,
+        "lastBuyPrice" : 123.37452252500002,
+        "lastSalePrice" : 123.876704,
+        "shouldBuy" : false,
+        "profitPercent" : 1.5,
+        "buyAmount" : 10.0
+      }
+    },
+    {
+      "symbol" : "BTC",
+      "buyTotal" : 77.0,
+      "sellTotal" : 54.84,
+      "range" : {
+        "power" : true,
+        "lastBuyPrice" : 8699.5348843,
+        "lastSalePrice" : 8665.30579975,
+        "shouldBuy" : false,
+        "profitPercent" : 1.5,
+        "buyAmount" : 10.0
+      }
+    },
+    {
+      "symbol" : "ETH",
+      "buyTotal" : 90.0,
+      "sellTotal" : 85.0,
+      "range" : {
+        "power" : true,
+        "lastBuyPrice" : 177.98730642499999,
+        "lastSalePrice" : 180.978761985,
+        "shouldBuy" : true,
+        "profitPercent" : 1.5,
+        "buyAmount" : 10.0
+      }
+    },
+    {
+      "symbol" : "LTC",
+      "buyTotal" : 181.0,
+      "sellTotal" : 163.36,
+      "range" : {
+        "power" : true,
+        "lastBuyPrice" : 58.291313824999996,
+        "lastSalePrice" : 59.255538475,
+        "shouldBuy" : true,
+        "profitPercent" : 1.5,
+        "buyAmount" : 10.0
+      }
+    }]
+}

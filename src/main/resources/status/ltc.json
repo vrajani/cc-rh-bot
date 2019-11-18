@@ -1,13 +1,14 @@
 {
   "symbol" : "LTC",
   "buyTotal" : 181.0,
-  "sellTotal" : 153.36,
+  "sellTotal" : 163.36,
+  "stopCounter" : 0,
   "range" : {
     "power" : true,
     "lastBuyPrice" : 58.291313824999996,
-    "lastSalePrice" : 58.91648725,
-    "shouldBuy" : false,
-    "profitPercent" : 1.75,
+    "lastSalePrice" : 59.255538475,
+    "shouldBuy" : true,
+    "profitPercent" : 1.5,
     "buyAmount" : 10.0
   }
 }

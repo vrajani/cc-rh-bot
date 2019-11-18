@@ -18,6 +18,7 @@ public class AnalyseBuy implements Analyser {
     @Override
     public boolean analyse(Double initialPrice, Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
+        Double stopLossResume = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getRange().getLastSalePrice());
         Double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
         Double midNightPercent = MathUtil.getPercentAmount(lastPrice, midNightPrice);
         LOG.info("Buy Percent: "+buyPercent);
@@ -28,9 +29,11 @@ public class AnalyseBuy implements Analyser {
         // Range
         if(cryptoCurrencyStatus.getRange().isPower() && cryptoCurrencyStatus.getRange().isShouldBuy()){
             LOG.info("Checking Low Range Buying....");
-
-            if (buyPercent < 98.4 || midNightPercent < 97.0){
+            if(cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < 98.4 || midNightPercent < 97.0)){
                 LOG.info("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
+                bought = actionService.buy(cryptoCurrencyStatus, lastPrice);
+            } else if (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 98.5){
+                LOG.info("Buying Stop loss resume: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 bought = actionService.buy(cryptoCurrencyStatus, lastPrice);
             }
         }
