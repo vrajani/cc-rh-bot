@@ -1,5 +1,6 @@
 package pl.vrajani.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,57 +10,50 @@ import pl.vrajani.config.Configuration;
 import pl.vrajani.model.CryptoCurrencyStatus;
 import pl.vrajani.model.CryptoHistPrice;
 import pl.vrajani.request.APIService;
-import pl.vrajani.service.analyse.AnalyseBuy;
-import pl.vrajani.service.analyse.AnalyseSell;
-import pl.vrajani.utility.ThreadWait;
+import pl.vrajani.utility.TimeUtil;
 
-import java.util.Calendar;
+import java.io.File;
+import java.io.IOException;
 
 @Component
 public class ControllerService {
     private static Logger LOG = LoggerFactory.getLogger(ControllerService.class);
-    private static final long INTERVAL_RATE = 120000;
+    private static final long INTERVAL_RATE = 60000;
 
     @Autowired
     private APIService apiService;
 
     @Autowired
-    private AnalyseBuy analyseBuy;
-
-    @Autowired
-    private AnalyseSell analyseSell;
-
-    @Autowired
-    private ConfigRefresher configRefresher;
-
-    @Autowired
     private ActionService actionService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Scheduled(fixedRate = INTERVAL_RATE)
     public void checkAllCrypto() {
         LOG.info("Initiating the check::::");
 
-        if(!isDownTime()) {
+        if(!TimeUtil.isDownTime()) {
             Configuration.CRYPTO.stream().forEach(str -> {
                 try {
                     LOG.info("Working with Crypto: " + str);
-                    CryptoCurrencyStatus currencyStatus = configRefresher.refresh(str);
+                    CryptoCurrencyStatus currencyStatus = refresh(str);
                     LOG.info("Crypto Details: "+ currencyStatus.toString());
 
-                    CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(str, "hour", "5minute");
-                    Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(0).getClosePrice());
+                    CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(str, "day", "5minute");
+                    Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size()-18).getClosePrice());
 
                     CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(str, "day", "hour");
                     Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
 
                     Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(str).getMarkPrice());
 
-                    LOG.info("Hour ago Value: " + initialPrice);
+                    LOG.info("1.5 Hour ago Value: " + initialPrice);
                     LOG.info("Current Value: " +lastPrice);
 
-                    boolean bought = analyseBuy.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus);
+                    boolean bought = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, currencyStatus);
                     if(!bought) {
-                        analyseSell.analyse(initialPrice, lastPrice, midNightPrice, currencyStatus);
+                        actionService.analyseSell(lastPrice, currencyStatus);
                     }
                     if(currencyStatus.getStopCounter() > 0){
                         currencyStatus.setStopCounter(currencyStatus.getStopCounter()-1);
@@ -69,8 +63,6 @@ public class ControllerService {
 
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
-                } finally {
-                    ThreadWait.waitFor(4000);
                 }
             });
         } else {
@@ -78,11 +70,14 @@ public class ControllerService {
         }
     }
 
-    private boolean isDownTime() {
-        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int currentMinute = Calendar.getInstance().get(Calendar.MINUTE);
-
-        return (currentHour == 16 && currentMinute > 25 )|| (currentHour == 17 && currentMinute < 5 );
+    private CryptoCurrencyStatus refresh(String str){
+        try {
+            return objectMapper.readValue(new File("src/main/resources/status/"+ str.toLowerCase()+".json"),
+                    CryptoCurrencyStatus.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }

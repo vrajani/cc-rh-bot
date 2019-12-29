@@ -1,14 +1,14 @@
 {
   "symbol" : "BSV",
   "buyTotal" : 210.0,
-  "sellTotal" : 135.0,
+  "sellTotal" : 225.0,
   "stopCounter" : 0,
   "range" : {
     "power" : true,
-    "lastBuyPrice" : 123.37452252500002,
-    "lastSalePrice" : 123.876704,
+    "lastBuyPrice" : 96.16481249999998,
+    "lastSalePrice" : 92.28195590249999,
     "shouldBuy" : false,
-    "profitPercent" : 1.5,
-    "buyAmount" : 10.0
+    "profitPercent" : 1.0,
+    "buyAmount" : 15.0
   }
 }
