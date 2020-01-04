@@ -6,14 +6,10 @@ import pl.vrajani.request.APIService;
 import pl.vrajani.service.ActionService;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 @org.springframework.context.annotation.Configuration
 public class Configuration {
-
-    public static final List<String> CRYPTO = Arrays.asList("BCH","BSV","BTC","LTC");
 
     @Bean
     public ObjectMapper objectMapper(){

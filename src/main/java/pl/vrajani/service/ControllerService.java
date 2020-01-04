@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import pl.vrajani.config.Configuration;
+import pl.vrajani.model.CryptoConfig;
 import pl.vrajani.model.CryptoCurrencyStatus;
 import pl.vrajani.model.CryptoHistPrice;
 import pl.vrajani.request.APIService;
@@ -14,6 +14,11 @@ import pl.vrajani.utility.TimeUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class ControllerService {
@@ -34,46 +39,53 @@ public class ControllerService {
         LOG.info("Initiating the check::::");
 
         if(!TimeUtil.isDownTime()) {
-            Configuration.CRYPTO.stream().forEach(str -> {
-                try {
-                    LOG.info("Working with Crypto: " + str);
-                    CryptoCurrencyStatus currencyStatus = refresh(str);
-                    LOG.info("Crypto Details: "+ currencyStatus.toString());
+            List<String> active = Arrays.asList(System.getenv("active").split(","));
+            final AtomicBoolean[] updated = {new AtomicBoolean(false)};
+            CryptoConfig cryptoConfig = refresh();
+            List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
+            Objects.requireNonNull(cryptoConfig).getCryptoCurrencyStatuses().stream()
+                    .filter(currencyStatus -> active.contains(currencyStatus.getSymbol()))
+                    .forEach(currencyStatus -> {
+                        try {
+                            String str = currencyStatus.getSymbol();
+                            LOG.info("Working with Crypto: " + str);
+                            LOG.info("Crypto Details: "+ currencyStatus.toString());
 
-                    CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(str, "day", "5minute");
-                    Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size()-18).getClosePrice());
+                            CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(str, "day", "5minute");
+                            Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size()-18).getClosePrice());
 
-                    CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(str, "day", "hour");
-                    Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
+                            CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(str, "day", "hour");
+                            Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
 
-                    Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(str).getMarkPrice());
+                            Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(str).getMarkPrice());
 
-                    LOG.info("1.5 Hour ago Value: " + initialPrice);
-                    LOG.info("Current Value: " +lastPrice);
+                            LOG.info("1.5 Hour ago Value: " + initialPrice);
+                            LOG.info("Current Value: " +lastPrice);
 
-                    boolean bought = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, currencyStatus);
-                    if(!bought) {
-                        actionService.analyseSell(lastPrice, currencyStatus);
-                    }
-                    if(currencyStatus.getStopCounter() > 0){
-                        currencyStatus.setStopCounter(currencyStatus.getStopCounter()-1);
-                        actionService.saveStatus(currencyStatus);
-                    }
-
-
-                } catch (Exception ex) {
-                    LOG.error("Exception occured::: ", ex);
-                }
-            });
+                            boolean bought = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, currencyStatus);
+                            boolean sold = false;
+                            if(!bought) {
+                                sold = actionService.analyseSell(lastPrice, currencyStatus);
+                            }
+                            updated[0].set(bought || sold);
+                            if(currencyStatus.getStopCounter() > 0){
+                                updated[0].set(true);
+                                currencyStatus.setStopCounter(currencyStatus.getStopCounter()-1);
+                                actionService.saveStatus(currencyStatus);
+                            }
+                        } catch (Exception ex) {
+                            LOG.error("Exception occured::: ", ex);
+                        }
+                    });
         } else {
             LOG.info("It is DownTime. Waiting...");
         }
     }
 
-    private CryptoCurrencyStatus refresh(String str){
+    private CryptoConfig refresh(){
         try {
-            return objectMapper.readValue(new File("src/main/resources/status/"+ str.toLowerCase()+".json"),
-                    CryptoCurrencyStatus.class);
+            return objectMapper.readValue(new File("src/main/resources/status/config.json"),
+                    CryptoConfig.class);
         } catch (IOException e) {
             e.printStackTrace();
             return null;
