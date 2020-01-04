@@ -29,7 +29,6 @@ public class ActionService {
 
     boolean analyseBuy(Double initialPrice, Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
-        lastPrice = MathUtil.getAmount(lastPrice, 100.25);
         Double stopLossResume = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getRange().getLastSalePrice());
         Double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
         Double midNightPercent = MathUtil.getPercentAmount(lastPrice, midNightPrice);
@@ -41,13 +40,14 @@ public class ActionService {
         // Range
         if(cryptoCurrencyStatus.getRange().isPower() && cryptoCurrencyStatus.getRange().isShouldBuy()){
             LOG.info("Checking Low Range Buying....");
-            if(cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < 98.64 || midNightPercent < 96)){
+            double targetBuyPercent = Double.parseDouble("100") - cryptoCurrencyStatus.getRange().getProfitPercent();
+            if(cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < targetBuyPercent || midNightPercent < 96)){
                 LOG.info("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 bought = buy(cryptoCurrencyStatus, lastPrice);
-                if(midNightPercent < 97.5) {
+                if(midNightPercent < 96) {
                     cryptoCurrencyStatus.setStopCounter(180);
                 }
-            } else if (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 98.5){
+            } else if (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < targetBuyPercent){
                 LOG.info("Buying Stop loss resume: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 bought = buy(cryptoCurrencyStatus, lastPrice);
             }
@@ -76,32 +76,34 @@ public class ActionService {
         //Range
         boolean sold = false;
         if(cryptoCurrencyStatus.getRange().isPower() && !cryptoCurrencyStatus.getRange().isShouldBuy()){
-            lastPrice = MathUtil.getAmount(lastPrice, 99.75);
             Double sellPercent = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getRange().getLastBuyPrice());
             LOG.info("Sell Low Percent: " + sellPercent);
-            if (sellPercent > Double.valueOf("100") + cryptoCurrencyStatus.getRange().getProfitPercent() ){
+            if (sellPercent > Double.parseDouble("100") + cryptoCurrencyStatus.getRange().getProfitPercent() ){
                 LOG.info("Selling Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
-                sold = sell(cryptoCurrencyStatus, lastPrice);
+                sold = sell(cryptoCurrencyStatus, lastPrice, false);
                 cryptoCurrencyStatus.setStopCounter(0);
-            } else if(sellPercent < Double.valueOf("95")) {
+            } else if(sellPercent < Double.parseDouble("96")) {
                 LOG.info("Selling for Stop loss "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 cryptoCurrencyStatus.setStopCounter(120);
-                sold = sell(cryptoCurrencyStatus, lastPrice);
+                sold = sell(cryptoCurrencyStatus, lastPrice, true);
             }
         }
 
         return sold;
     }
 
-    private boolean sell(CryptoCurrencyStatus cryptoCurrencyStatus, Double sellPrice) {
+    private boolean sell(CryptoCurrencyStatus cryptoCurrencyStatus, Double sellPrice, boolean stopLoss) {
         ActionConfig actionConfig = cryptoCurrencyStatus.getRange();
-        double v = actionConfig.getBuyAmount() / sellPrice;
+        double sellAmount = actionConfig.getBuyAmount();
+        if(stopLoss){
+            sellAmount = MathUtil.getAmount(sellAmount, Double.valueOf("96"));
+        }
+        double v = sellAmount / sellPrice;
         Boolean sellCrypto = apiService.sellCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(v), String.valueOf(sellPrice));
         if(sellCrypto) {
             actionConfig.setShouldBuy(true);
             actionConfig.setLastSalePrice(sellPrice);
 
-            Double sellAmount = cryptoCurrencyStatus.getRange().getBuyAmount();
             cryptoCurrencyStatus.setSellTotal(cryptoCurrencyStatus.getSellTotal() + sellAmount);
             cryptoCurrencyStatus.setRange(actionConfig);
             saveStatus(cryptoCurrencyStatus);

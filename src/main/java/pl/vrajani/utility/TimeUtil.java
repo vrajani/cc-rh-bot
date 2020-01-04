@@ -10,7 +10,7 @@ public class TimeUtil {
         int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         int currentMinute = Calendar.getInstance().get(Calendar.MINUTE);
 
-        return (currentHour == 16 && currentMinute > 25 )|| (currentHour == 17 && currentMinute < 5 );
+        return (currentHour == 17 && currentMinute > 25 )|| (currentHour == 18 && currentMinute < 5 );
     }
 
     public static String getCurrentTime(){

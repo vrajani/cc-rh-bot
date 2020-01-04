@@ -5,8 +5,8 @@
   "stopCounter" : 0,
   "range" : {
     "power" : true,
-    "lastBuyPrice" : 96.16481249999998,
-    "lastSalePrice" : 92.28195590249999,
+    "lastBuyPrice" : 107.4058675,
+    "lastSalePrice" : 107.07610555849999,
     "shouldBuy" : false,
     "profitPercent" : 1.0,
     "buyAmount" : 15.0
