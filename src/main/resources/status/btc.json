@@ -1,14 +1,14 @@
 {
   "symbol" : "BTC",
   "buyTotal" : 77.0,
-  "sellTotal" : 117.0,
-  "stopCounter" : 0,
+  "sellTotal" : 97.0,
+  "stopCounter" : 178,
   "range" : {
     "power" : true,
-    "lastBuyPrice" : 6995.71804027,
-    "lastSalePrice" : 7084.7527432444995,
+    "lastBuyPrice" : 7941.584751,
+    "lastSalePrice" : 7981.65721,
     "shouldBuy" : true,
-    "profitPercent" : 0.70,
+    "profitPercent" : 0.5,
     "buyAmount" : 20.0
   }
 }

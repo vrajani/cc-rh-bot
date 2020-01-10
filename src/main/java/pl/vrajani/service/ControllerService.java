@@ -9,11 +9,14 @@ import org.springframework.stereotype.Component;
 import pl.vrajani.config.Configuration;
 import pl.vrajani.model.CryptoCurrencyStatus;
 import pl.vrajani.model.CryptoHistPrice;
+import pl.vrajani.model.CryptoOrderResponse;
+import pl.vrajani.model.CryptoOrderStatusResponse;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.TimeUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 @Component
 public class ControllerService {
@@ -29,19 +32,30 @@ public class ControllerService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private HashMap<String, CryptoOrderResponse> orderStatus;
+
     @Scheduled(fixedRate = INTERVAL_RATE)
     public void checkAllCrypto() {
         LOG.info("Initiating the check::::");
 
         if(!TimeUtil.isDownTime()) {
-            Configuration.CRYPTO.stream().forEach(str -> {
+            for (String str : Configuration.CRYPTO) {
+                if (orderStatus.containsKey(str)) {
+                    CryptoOrderResponse previousOrder = orderStatus.get(str);
+                    CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrder.getId());
+                    if(!"filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+                        LOG.info("Skipping crypto as there is a pending order: {} with order Id: {}", str, previousOrder.getId());
+                        continue;
+                    }
+                }
                 try {
                     LOG.info("Working with Crypto: " + str);
                     CryptoCurrencyStatus currencyStatus = refresh(str);
-                    LOG.info("Crypto Details: "+ currencyStatus.toString());
+                    LOG.info("Crypto Details: " + currencyStatus.toString());
 
                     CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(str, "day", "5minute");
-                    Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size()-18).getClosePrice());
+                    Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 18).getClosePrice());
 
                     CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(str, "day", "hour");
                     Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
@@ -49,14 +63,18 @@ public class ControllerService {
                     Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(str).getMarkPrice());
 
                     LOG.info("1.5 Hour ago Value: " + initialPrice);
-                    LOG.info("Current Value: " +lastPrice);
+                    LOG.info("Current Value: " + lastPrice);
 
-                    boolean bought = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, currencyStatus);
-                    if(!bought) {
-                        actionService.analyseSell(lastPrice, currencyStatus);
+                    CryptoOrderResponse orderResponse = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, currencyStatus);
+                    if (orderResponse == null) {
+                        orderResponse = actionService.analyseSell(lastPrice, currencyStatus);
                     }
-                    if(currencyStatus.getStopCounter() > 0){
-                        currencyStatus.setStopCounter(currencyStatus.getStopCounter()-1);
+
+                    if (orderResponse != null) {
+                        orderStatus.put(str, orderResponse);
+                    }
+                    if (currencyStatus.getStopCounter() > 0) {
+                        currencyStatus.setStopCounter(currencyStatus.getStopCounter() - 1);
                         actionService.saveStatus(currencyStatus);
                     }
 
@@ -64,7 +82,7 @@ public class ControllerService {
                 } catch (Exception ex) {
                     LOG.error("Exception occured::: ", ex);
                 }
-            });
+            }
         } else {
             LOG.info("It is DownTime. Waiting...");
         }

@@ -2,6 +2,7 @@ package pl.vrajani.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
+import pl.vrajani.model.CryptoOrderResponse;
 import pl.vrajani.request.APIService;
 import pl.vrajani.service.ActionService;
 
@@ -37,5 +38,10 @@ public class Configuration {
     @Bean
     public ActionService actionService(APIService apiService, ObjectMapper objectMapper) throws IOException {
         return new ActionService(apiService, objectMapper);
+    }
+
+    @Bean
+    public HashMap<String, CryptoOrderResponse> orderStatus(){
+        return new HashMap<>();
     }
 }

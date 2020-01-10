@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.vrajani.model.ActionConfig;
 import pl.vrajani.model.CryptoCurrencyStatus;
+import pl.vrajani.model.CryptoOrderResponse;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.MathUtil;
 import pl.vrajani.utility.TimeUtil;
@@ -16,6 +17,7 @@ import java.io.IOException;
 
 public class ActionService {
     private static final Logger LOG = LoggerFactory.getLogger(ActionService.class);
+    private static final String STOP_LOSS_PERCENT = "97";
 
     private APIService apiService;
     private ObjectMapper objectMapper;
@@ -27,7 +29,7 @@ public class ActionService {
         this.fileWriter = new BufferedWriter(new FileWriter(new File("src/main/resources/status/action-log-bckup.txt"), true));
     }
 
-    boolean analyseBuy(Double initialPrice, Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
+    CryptoOrderResponse analyseBuy(Double initialPrice, Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
         Double stopLossResume = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getRange().getLastSalePrice());
         Double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
@@ -35,7 +37,7 @@ public class ActionService {
         LOG.info("Buy Percent: "+buyPercent);
         LOG.info("MidNight Percent: "+midNightPercent);
 
-        boolean bought = false;
+        CryptoOrderResponse bought = null;
 
         // Range
         if(cryptoCurrencyStatus.getRange().isPower() && cryptoCurrencyStatus.getRange().isShouldBuy()){
@@ -47,7 +49,7 @@ public class ActionService {
                 if(midNightPercent < 96) {
                     cryptoCurrencyStatus.setStopCounter(180);
                 }
-            } else if (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < targetBuyPercent){
+            } else if (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < targetBuyPercent - (cryptoCurrencyStatus.getRange().getProfitPercent()/2)){
                 LOG.info("Buying Stop loss resume: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 bought = buy(cryptoCurrencyStatus, lastPrice);
             }
@@ -55,11 +57,11 @@ public class ActionService {
         return bought;
     }
 
-    private Boolean buy(CryptoCurrencyStatus cryptoCurrencyStatus, Double buyPrice) {
+    private CryptoOrderResponse buy(CryptoCurrencyStatus cryptoCurrencyStatus, Double buyPrice) {
         ActionConfig actionConfig = cryptoCurrencyStatus.getRange();
         double v = actionConfig.getBuyAmount() / buyPrice;
-        Boolean buyCrypto = apiService.buyCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(v), String.valueOf(buyPrice));
-        if(buyCrypto) {
+        CryptoOrderResponse buyCrypto = apiService.buyCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(v), String.valueOf(buyPrice));
+        if(buyCrypto != null) {
             actionConfig.setShouldBuy(false);
             actionConfig.setLastBuyPrice(buyPrice);
 
@@ -71,10 +73,10 @@ public class ActionService {
         return buyCrypto;
     }
 
-    boolean analyseSell(Double lastPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
+    CryptoOrderResponse analyseSell(Double lastPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
         //Range
-        boolean sold = false;
+        CryptoOrderResponse sold = null;
         if(cryptoCurrencyStatus.getRange().isPower() && !cryptoCurrencyStatus.getRange().isShouldBuy()){
             Double sellPercent = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getRange().getLastBuyPrice());
             LOG.info("Sell Low Percent: " + sellPercent);
@@ -82,7 +84,7 @@ public class ActionService {
                 LOG.info("Selling Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 sold = sell(cryptoCurrencyStatus, lastPrice, false);
                 cryptoCurrencyStatus.setStopCounter(0);
-            } else if(sellPercent < Double.parseDouble("96")) {
+            } else if(sellPercent < Double.parseDouble(STOP_LOSS_PERCENT)) {
                 LOG.info("Selling for Stop loss "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
                 cryptoCurrencyStatus.setStopCounter(120);
                 sold = sell(cryptoCurrencyStatus, lastPrice, true);
@@ -92,15 +94,15 @@ public class ActionService {
         return sold;
     }
 
-    private boolean sell(CryptoCurrencyStatus cryptoCurrencyStatus, Double sellPrice, boolean stopLoss) {
+    private CryptoOrderResponse sell(CryptoCurrencyStatus cryptoCurrencyStatus, Double sellPrice, boolean stopLoss) {
         ActionConfig actionConfig = cryptoCurrencyStatus.getRange();
         double sellAmount = actionConfig.getBuyAmount();
         if(stopLoss){
-            sellAmount = MathUtil.getAmount(sellAmount, Double.valueOf("96"));
+            sellAmount = MathUtil.getAmount(sellAmount, Double.valueOf(STOP_LOSS_PERCENT));
         }
         double v = sellAmount / sellPrice;
-        Boolean sellCrypto = apiService.sellCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(v), String.valueOf(sellPrice));
-        if(sellCrypto) {
+        CryptoOrderResponse sellCrypto = apiService.sellCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(v), String.valueOf(sellPrice));
+        if(sellCrypto != null) {
             actionConfig.setShouldBuy(true);
             actionConfig.setLastSalePrice(sellPrice);
 
