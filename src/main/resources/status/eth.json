@@ -2,6 +2,8 @@
   "symbol" : "ETH",
   "buyTotal" : 90.0,
   "sellTotal" : 110.0,
+  "regularSell" : 0,
+  "stopLossSell" : 0,
   "stopCounter" : 30,
   "range" : {
     "power" : true,

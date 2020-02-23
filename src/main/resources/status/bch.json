@@ -1,14 +1,16 @@
 {
   "symbol" : "BCH",
   "buyTotal" : 202.0,
-  "sellTotal" : 222.0,
+  "sellTotal" : 237.0,
   "stopCounter" : 0,
   "range" : {
     "power" : true,
-    "lastBuyPrice" : 237.505,
-    "lastSalePrice" : 237.465,
+    "lastBuyPrice" : 381.847668,
+    "lastSalePrice" : 379.2309670908,
     "shouldBuy" : false,
     "profitPercent" : 1.0,
-    "buyAmount" : 20.0
-  }
+    "buyAmount" : 35.0
+  },
+  "regularSell" : 32,
+  "stopLossSell" : 8
 }

@@ -7,6 +7,8 @@ public class CryptoCurrencyStatus {
     Double sellTotal;
     int stopCounter;
     ActionConfig range;
+    int regularSell;
+    int stopLossSell;
 
     public String getSymbol() {
         return symbol;
@@ -23,6 +25,8 @@ public class CryptoCurrencyStatus {
                 .append("],[range=").append(range)
                 .append("],[buyTotal=").append(buyTotal)
                 .append("],[sellTotal=").append(sellTotal)
+                .append("],[regularSell=").append(regularSell)
+                .append("],[stopLossSell=").append(stopLossSell)
                 .append("]}").toString();
     }
 
@@ -56,5 +60,29 @@ public class CryptoCurrencyStatus {
 
     public void setStopCounter(int stopCounter) {
         this.stopCounter = stopCounter;
+    }
+
+    public int getRegularSell() {
+        return regularSell;
+    }
+
+    public void setRegularSell(int regularSell) {
+        this.regularSell = regularSell;
+    }
+
+    public int getStopLossSell() {
+        return stopLossSell;
+    }
+
+    public void setStopLossSell(int stopLossSell) {
+        this.stopLossSell = stopLossSell;
+    }
+
+    public void incRegularSell(){
+        this.regularSell++;
+    }
+
+    public void incStopLossSell(){
+        this.stopLossSell++;
     }
 }

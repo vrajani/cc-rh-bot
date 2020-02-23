@@ -14,7 +14,7 @@ import java.util.List;
 @org.springframework.context.annotation.Configuration
 public class Configuration {
 
-    public static final List<String> CRYPTO = Arrays.asList("BCH","BSV","BTC","LTC");
+    public static final List<String> CRYPTO = Arrays.asList("BCH","BTC");
 
     @Bean
     public ObjectMapper objectMapper(){

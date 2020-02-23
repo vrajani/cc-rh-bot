@@ -6,3 +6,4 @@ logs/
 *.log
 .jar
 *.txt
+*.json

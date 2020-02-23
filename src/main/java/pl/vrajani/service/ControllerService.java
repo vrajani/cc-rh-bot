@@ -44,7 +44,9 @@ public class ControllerService {
                 if (orderStatus.containsKey(str)) {
                     CryptoOrderResponse previousOrder = orderStatus.get(str);
                     CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrder.getId());
-                    if(!"filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+                    if("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+                        orderStatus.remove(str);
+                    } else {
                         LOG.info("Skipping crypto as there is a pending order: {} with order Id: {}", str, previousOrder.getId());
                         continue;
                     }
