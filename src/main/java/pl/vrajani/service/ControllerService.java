@@ -1,103 +1,112 @@
 package pl.vrajani.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-import pl.vrajani.config.Configuration;
-import pl.vrajani.model.CryptoCurrencyStatus;
-import pl.vrajani.model.CryptoHistPrice;
-import pl.vrajani.model.CryptoOrderResponse;
-import pl.vrajani.model.CryptoOrderStatusResponse;
+import pl.vrajani.model.*;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.TimeUtil;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Component
 public class ControllerService {
-    private static Logger LOG = LoggerFactory.getLogger(ControllerService.class);
-    private static final long INTERVAL_RATE = 60000;
-
-    @Autowired
     private APIService apiService;
-
-    @Autowired
     private ActionService actionService;
+    private DaoService daoService;
+    private HashMap<String, String> pendingOrdersBySymbol;
+    private List<CryptoCurrencyStatus> updatedStatus;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    public ControllerService(APIService apiService, ActionService actionService, DaoService daoService){
+        this.apiService = apiService;
+        this.actionService = actionService;
+        this.daoService = daoService;
 
-    @Autowired
-    private HashMap<String, CryptoOrderResponse> orderStatus;
+        this.pendingOrdersBySymbol = new HashMap<>();
+        this.updatedStatus = new ArrayList<>();
+    }
 
-    @Scheduled(fixedRate = INTERVAL_RATE)
-    public void checkAllCrypto() {
-        LOG.info("Initiating the check::::");
+    public void checkAllCrypto() throws IOException {
+        System.out.println("Initiating the check::::");
 
         if(!TimeUtil.isDownTime()) {
-            for (String str : Configuration.CRYPTO) {
-                if (orderStatus.containsKey(str)) {
-                    CryptoOrderResponse previousOrder = orderStatus.get(str);
-                    CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrder.getId());
-                    if("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
-                        orderStatus.remove(str);
+            DataConfig dataConfig = daoService.getDataConfig();
+            dataConfig.getPendingOrders().stream()
+                .map(pendingOrder -> pendingOrder.split("\\|"))
+                .forEach(split -> pendingOrdersBySymbol.put(split[0], split[1]));
+            boolean updatedPendingOrders = false;
+            for (CryptoCurrencyStatus currencyStatus : dataConfig.getCryptoCurrencyStatuses()) {
+                if (currencyStatus.isPower()) {
+                    String symbol = currencyStatus.getSymbol();
+                    if (pendingOrdersBySymbol.containsKey(symbol)) {
+                        String previousOrderId = pendingOrdersBySymbol.get(symbol);
+                        CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
+                        if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+                            dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
+                            updatedPendingOrders = true;
+                            daoService.registerCompletedTransaction(cryptoOrderStatusResponse);
+                            processCrypto(currencyStatus);
+                        } else {
+                            System.out.println("Skipping crypto as there is a pending order: " + symbol + " with order Id: " + previousOrderId);
+                        }
                     } else {
-                        LOG.info("Skipping crypto as there is a pending order: {} with order Id: {}", str, previousOrder.getId());
-                        continue;
+                        processCrypto(currencyStatus);
                     }
-                }
-                try {
-                    LOG.info("Working with Crypto: " + str);
-                    CryptoCurrencyStatus currencyStatus = refresh(str);
-                    LOG.info("Crypto Details: " + currencyStatus.toString());
-
-                    CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(str, "day", "5minute");
-                    Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 18).getClosePrice());
-
-                    CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(str, "day", "hour");
-                    Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
-
-                    Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(str).getMarkPrice());
-
-                    LOG.info("1.5 Hour ago Value: " + initialPrice);
-                    LOG.info("Current Value: " + lastPrice);
-
-                    CryptoOrderResponse orderResponse = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, currencyStatus);
-                    if (orderResponse == null) {
-                        orderResponse = actionService.analyseSell(lastPrice, currencyStatus);
-                    }
-
-                    if (orderResponse != null) {
-                        orderStatus.put(str, orderResponse);
-                    }
-                    if (currencyStatus.getStopCounter() > 0) {
-                        currencyStatus.setStopCounter(currencyStatus.getStopCounter() - 1);
-                        actionService.saveStatus(currencyStatus);
-                    }
-
-
-                } catch (Exception ex) {
-                    LOG.error("Exception occured::: ", ex);
                 }
             }
+
+            if(!updatedStatus.isEmpty() || updatedPendingOrders){
+                if(!updatedStatus.isEmpty()) {
+                    List<String> updatedSymbols = updatedStatus.stream().map(CryptoCurrencyStatus::getSymbol).collect(Collectors.toList());
+                    List<CryptoCurrencyStatus> updatedCurrencyStatuses = dataConfig.getCryptoCurrencyStatuses().stream()
+                            .filter(cryptoCurrencyStatus -> !updatedSymbols.contains(cryptoCurrencyStatus.getSymbol()))
+                            .collect(Collectors.toList());
+                    updatedCurrencyStatuses.addAll(updatedStatus);
+
+                    dataConfig.setCryptoCurrencyStatuses(updatedCurrencyStatuses);
+                }
+                daoService.updateConfig(dataConfig);
+            }
         } else {
-            LOG.info("It is DownTime. Waiting...");
+            System.out.println("It is DownTime. Waiting...");
         }
     }
 
-    private CryptoCurrencyStatus refresh(String str){
+    private void processCrypto(CryptoCurrencyStatus cryptoCurrencyStatus) {
         try {
-            return objectMapper.readValue(new File("src/main/resources/status/"+ str.toLowerCase()+".json"),
-                    CryptoCurrencyStatus.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+            String symbol = cryptoCurrencyStatus.getSymbol();
+            System.out.println("Crypto Details: " + cryptoCurrencyStatus.toString());
+
+            CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "5minute");
+            Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 18).getClosePrice());
+
+            CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "hour");
+            Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
+
+            Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
+
+            System.out.println("1.5 Hour ago Value: " + initialPrice);
+            System.out.println("Current Value: " + lastPrice);
+
+            TransactionUpdate transactionUpdate;
+            if(cryptoCurrencyStatus.isShouldBuy()) {
+                transactionUpdate = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, cryptoCurrencyStatus);
+            } else {
+                transactionUpdate = actionService.analyseSell(lastPrice, cryptoCurrencyStatus);
+            }
+
+            if (transactionUpdate != null || cryptoCurrencyStatus.getStopCounter() > 0) {
+                if(cryptoCurrencyStatus.getStopCounter() > 0) {
+                    cryptoCurrencyStatus.decStopCounter();
+                } else if (transactionUpdate != null) {
+                    // update Cryto currency as well
+                    pendingOrdersBySymbol.put(symbol, transactionUpdate.getOrderId());
+                }
+                updatedStatus.add(cryptoCurrencyStatus);
+            }
+        } catch (Exception ex) {
+            System.out.println("Exception occured::: ");
+            ex.printStackTrace();
         }
     }
-
 }
