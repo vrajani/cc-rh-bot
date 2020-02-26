@@ -1,5 +1,6 @@
 package pl.vrajani.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import pl.vrajani.model.*;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.TimeUtil;
@@ -14,13 +15,13 @@ public class ControllerService {
     private APIService apiService;
     private ActionService actionService;
     private DaoService daoService;
+    private ObjectMapper objectMapper;
     private HashMap<String, String> pendingOrdersBySymbol;
     private List<CryptoCurrencyStatus> updatedStatus;
 
-    public ControllerService(APIService apiService, ActionService actionService, DaoService daoService){
-        this.apiService = apiService;
-        this.actionService = actionService;
+    public ControllerService(DaoService daoService, ObjectMapper objectMapper) {
         this.daoService = daoService;
+        this.objectMapper = objectMapper;
 
         this.pendingOrdersBySymbol = new HashMap<>();
         this.updatedStatus = new ArrayList<>();
@@ -34,7 +35,11 @@ public class ControllerService {
             dataConfig.getPendingOrders().stream()
                 .map(pendingOrder -> pendingOrder.split("\\|"))
                 .forEach(split -> pendingOrdersBySymbol.put(split[0], split[1]));
+            this.apiService = apiService(dataConfig.getToken());
+            String acquiredToken = apiService.acquireToken();
+            this.actionService = new ActionService(apiService, objectMapper);
             boolean updatedPendingOrders = false;
+
             for (CryptoCurrencyStatus currencyStatus : dataConfig.getCryptoCurrencyStatuses()) {
                 if (currencyStatus.isPower()) {
                     String symbol = currencyStatus.getSymbol();
@@ -55,7 +60,7 @@ public class ControllerService {
                 }
             }
 
-            if(!updatedStatus.isEmpty() || updatedPendingOrders){
+            if(!updatedStatus.isEmpty() || updatedPendingOrders || updatedToken(acquiredToken, dataConfig.getToken())){
                 if(!updatedStatus.isEmpty()) {
                     List<String> updatedSymbols = updatedStatus.stream().map(CryptoCurrencyStatus::getSymbol).collect(Collectors.toList());
                     List<CryptoCurrencyStatus> updatedCurrencyStatuses = dataConfig.getCryptoCurrencyStatuses().stream()
@@ -65,11 +70,16 @@ public class ControllerService {
 
                     dataConfig.setCryptoCurrencyStatuses(updatedCurrencyStatuses);
                 }
+                dataConfig.setToken(acquiredToken);
                 daoService.updateConfig(dataConfig);
             }
         } else {
             System.out.println("It is DownTime. Waiting...");
         }
+    }
+
+    private boolean updatedToken(String acquiredToken, String token) {
+        return acquiredToken != null && !acquiredToken.equals(token);
     }
 
     private void processCrypto(CryptoCurrencyStatus cryptoCurrencyStatus) {
@@ -108,5 +118,18 @@ public class ControllerService {
             System.out.println("Exception occured::: ");
             ex.printStackTrace();
         }
+    }
+
+    public static APIService apiService(String token) {
+        HashMap<String, String> properties = new HashMap<>();
+        properties.put("username", System.getenv("username"));
+        properties.put("password", System.getenv("password"));
+        properties.put("grant_type", "password");
+        properties.put("client_id", System.getenv("client_id"));
+        properties.put("account_id", System.getenv("account_id"));
+        properties.put("accountId", System.getenv("accountId"));
+        properties.put("token", token);
+
+        return new APIService(properties);
     }
 }
