@@ -35,6 +35,9 @@ public class ActionService {
         // Range
         System.out.println("Checking Low Range Buying....");
         double targetBuyPercent = Double.parseDouble("100") - cryptoCurrencyStatus.getProfitPercent();
+        if(midNightPercent < 95) {
+            targetBuyPercent = targetBuyPercent - cryptoCurrencyStatus.getProfitPercent();
+        }
         if(cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < targetBuyPercent || midNightPercent < 96)){
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             bought = buy(cryptoCurrencyStatus, lastPrice);
@@ -60,14 +63,19 @@ public class ActionService {
         return null;
     }
 
-    TransactionUpdate analyseSell(Double lastPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
+    TransactionUpdate analyseSell(Double lastPrice, Double midNightPrice, CryptoCurrencyStatus cryptoCurrencyStatus) {
 
         //Range
         lastPrice = MathUtil.getAmount(lastPrice, 99.88);
         TransactionUpdate sold = null;
         Double sellPercent = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getLastBuyPrice());
         System.out.println("Sell Low Percent: " + sellPercent);
-        if (sellPercent > Double.parseDouble("100") + cryptoCurrencyStatus.getProfitPercent() ){
+        double targetSelPercent = Double.parseDouble("100") + cryptoCurrencyStatus.getProfitPercent();
+
+        if(midNightPrice < 95) {
+            targetSelPercent = targetSelPercent - (cryptoCurrencyStatus.getProfitPercent() / 2);
+        }
+        if (sellPercent > targetSelPercent){
             System.out.println("Selling Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             sold = sell(cryptoCurrencyStatus, lastPrice, false);
             cryptoCurrencyStatus.setStopCounter(0);

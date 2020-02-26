@@ -102,7 +102,7 @@ public class ControllerService {
             if(cryptoCurrencyStatus.isShouldBuy()) {
                 transactionUpdate = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, cryptoCurrencyStatus);
             } else {
-                transactionUpdate = actionService.analyseSell(lastPrice, cryptoCurrencyStatus);
+                transactionUpdate = actionService.analyseSell(lastPrice, midNightPrice, cryptoCurrencyStatus);
             }
 
             if (transactionUpdate != null || cryptoCurrencyStatus.getStopCounter() > 0) {
