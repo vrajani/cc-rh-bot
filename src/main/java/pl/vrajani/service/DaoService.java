@@ -2,6 +2,7 @@ package pl.vrajani.service;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -9,8 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import pl.vrajani.model.CryptoOrderStatusResponse;
 import pl.vrajani.model.DataConfig;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 public class DaoService {
     private final ObjectMapper objectMapper;
@@ -38,7 +38,8 @@ public class DaoService {
 
     public void updateConfig(DataConfig dataConfig) throws JsonProcessingException {
         if(isOnCloud()){
-            s3client.putObject("cc-rh-config", "config.json", objectMapper.writeValueAsString(dataConfig));
+            s3client.putObject("cc-rh-config", "config.json",
+                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataConfig));
         } else {
             saveStatus(dataConfig);
         }
@@ -53,11 +54,6 @@ public class DaoService {
         }
     }
 
-    public void registerCompletedTransaction(CryptoOrderStatusResponse cryptoOrderStatusResponse) {
-
-//            actionLog = TimeUtil.getCurrentTime() + "," + symbol + "," + type + "," + sellAmount + "," + quantity;
-    }
-
     private DataConfig refresh(){
         try {
             return objectMapper.readValue(new File("src/main/resources/status/config.json"),
@@ -65,6 +61,27 @@ public class DaoService {
         } catch (IOException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public void registerTransactionReport(String transactionReports) throws IOException {
+        if(isOnCloud()) {
+            S3Object historicalReports = s3client.getObject("cc-rh-config", "transaction-report.txt");
+            S3ObjectInputStream s3objectResponse = historicalReports.getObjectContent();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(s3objectResponse));
+            StringBuilder sb = new StringBuilder();
+            String line = "";
+            while ((line = reader.readLine()) != null) {
+                if(!line.isEmpty()) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+            }
+
+            s3client.putObject("cc-rh-config", "transaction-report.txt", sb.append(transactionReports).toString());
+        } else {
+            FileWriter writer = new FileWriter(new File("src/main/resources/transaction-report.txt"), true);
+            writer.write(transactionReports);
         }
     }
 }

@@ -140,4 +140,8 @@ public class CryptoCurrencyStatus {
     public void setProfit(double profit) {
         this.profit = profit;
     }
+
+    public void addProfit(double change) {
+        this.profit = this.profit + change;
+    }
 }

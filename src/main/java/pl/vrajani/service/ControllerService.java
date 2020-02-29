@@ -50,7 +50,6 @@ public class ControllerService {
                             dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
                             updatedPendingOrders = true;
                             updatedStatus.add(getUpdatedCurrencyStatus(currencyStatus, cryptoOrderStatusResponse));
-                            daoService.registerCompletedTransaction(cryptoOrderStatusResponse);
                         } else {
                             System.out.println("Skipping crypto as there is a pending order: " + symbol + " with order Id: " + previousOrderId);
                         }
@@ -87,13 +86,15 @@ public class ControllerService {
         } else {
             currencyStatus.setShouldBuy(true);
             currencyStatus.setLastSellPrice(lastOrderPrice);
-            if(currencyStatus.getBuyAmount() < lastOrderPrice) {
+            if(currencyStatus.getLastBuyPrice() < lastOrderPrice) {
                 currencyStatus.incRegularSell();
                 currencyStatus.setStopCounter(0);
             } else {
                 currencyStatus.incStopLossSell();
                 currencyStatus.setStopCounter(120);
             }
+
+            currencyStatus.addProfit(lastOrderPrice - currencyStatus.getLastBuyPrice());
         }
         return currencyStatus;
     }
@@ -121,12 +122,13 @@ public class ControllerService {
             String orderId;
             if(cryptoCurrencyStatus.isShouldBuy()) {
                 orderId = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, cryptoCurrencyStatus);
-                pendingOrdersBySymbol.put(symbol, orderId);
             } else {
                 orderId = actionService.analyseSell(lastPrice, midNightPrice, cryptoCurrencyStatus);
-                pendingOrdersBySymbol.put(symbol, orderId);
             }
 
+            if(orderId != null) {
+                pendingOrdersBySymbol.put(symbol, orderId);
+            }
             if(cryptoCurrencyStatus.getStopCounter() > 0) {
                 cryptoCurrencyStatus.decStopCounter();
                 updatedStatus.add(cryptoCurrencyStatus);
