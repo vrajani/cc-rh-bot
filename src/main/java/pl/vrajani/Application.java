@@ -15,7 +15,7 @@ public class Application implements RequestHandler<Object, String> {
         ObjectMapper objectMapper = new ObjectMapper();
         DaoService daoService = new DaoService(objectMapper);
 
-        ControllerService controllerService = new ControllerService(daoService, objectMapper);
+        ControllerService controllerService = new ControllerService(daoService);
         try {
             controllerService.checkAllCrypto();
         } catch (IOException e) {

@@ -7,8 +7,10 @@ public class CryptoCurrencyStatus {
     int stopCounter;
     int regularSell;
     int stopLossSell;
+    double quantity;
+    double profit;
     Double lastBuyPrice;
-    Double lastSalePrice;
+    Double lastSellPrice;
     boolean shouldBuy;
     Double profitPercent;
     Double buyAmount;
@@ -21,12 +23,12 @@ public class CryptoCurrencyStatus {
         this.lastBuyPrice = lastBuyPrice;
     }
 
-    public Double getLastSalePrice() {
-        return lastSalePrice;
+    public Double getLastSellPrice() {
+        return lastSellPrice;
     }
 
-    public void setLastSalePrice(Double lastSalePrice) {
-        this.lastSalePrice = lastSalePrice;
+    public void setLastSellPrice(Double lastSellPrice) {
+        this.lastSellPrice = lastSellPrice;
     }
 
     public boolean isShouldBuy() {
@@ -80,8 +82,10 @@ public class CryptoCurrencyStatus {
                 .append("],[power=").append(power)
                 .append("],[profitPercent=").append(profitPercent)
                 .append("],[lastBuyPrice=").append(lastBuyPrice)
-                .append("],[lastSalePrice=").append(lastSalePrice)
+                .append("],[lastSellPrice=").append(lastSellPrice)
                 .append("],[buyAmount=").append(buyAmount)
+                .append("],[quantity=").append(quantity)
+                .append("],[profit=").append(profit)
                 .append("]}").toString();
     }
 
@@ -119,5 +123,21 @@ public class CryptoCurrencyStatus {
 
     public void decStopCounter() {
         this.stopCounter--;
+    }
+
+    public double getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(double quantity) {
+        this.quantity = quantity;
+    }
+
+    public double getProfit() {
+        return profit;
+    }
+
+    public void setProfit(double profit) {
+        this.profit = profit;
     }
 }

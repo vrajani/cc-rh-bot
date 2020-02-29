@@ -1,7 +1,9 @@
 package pl.vrajani.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import pl.vrajani.model.*;
+import pl.vrajani.model.CryptoCurrencyStatus;
+import pl.vrajani.model.CryptoHistPrice;
+import pl.vrajani.model.CryptoOrderStatusResponse;
+import pl.vrajani.model.DataConfig;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.TimeUtil;
 
@@ -15,13 +17,11 @@ public class ControllerService {
     private APIService apiService;
     private ActionService actionService;
     private DaoService daoService;
-    private ObjectMapper objectMapper;
     private HashMap<String, String> pendingOrdersBySymbol;
     private List<CryptoCurrencyStatus> updatedStatus;
 
-    public ControllerService(DaoService daoService, ObjectMapper objectMapper) {
+    public ControllerService(DaoService daoService) {
         this.daoService = daoService;
-        this.objectMapper = objectMapper;
 
         this.pendingOrdersBySymbol = new HashMap<>();
         this.updatedStatus = new ArrayList<>();
@@ -37,7 +37,7 @@ public class ControllerService {
                 .forEach(split -> pendingOrdersBySymbol.put(split[0], split[1]));
             this.apiService = apiService(dataConfig.getToken());
             String acquiredToken = apiService.acquireToken();
-            this.actionService = new ActionService(apiService, objectMapper);
+            this.actionService = new ActionService(apiService);
             boolean updatedPendingOrders = false;
 
             for (CryptoCurrencyStatus currencyStatus : dataConfig.getCryptoCurrencyStatuses()) {
@@ -49,8 +49,8 @@ public class ControllerService {
                         if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
                             dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
                             updatedPendingOrders = true;
+                            updatedStatus.add(getUpdatedCurrencyStatus(currencyStatus, cryptoOrderStatusResponse));
                             daoService.registerCompletedTransaction(cryptoOrderStatusResponse);
-                            processCrypto(currencyStatus);
                         } else {
                             System.out.println("Skipping crypto as there is a pending order: " + symbol + " with order Id: " + previousOrderId);
                         }
@@ -78,6 +78,26 @@ public class ControllerService {
         }
     }
 
+    private CryptoCurrencyStatus getUpdatedCurrencyStatus(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
+        Double lastOrderPrice = Double.valueOf(cryptoOrderStatusResponse.getPrice());
+        if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")){
+            currencyStatus.setShouldBuy(false);
+            currencyStatus.setLastBuyPrice(lastOrderPrice);
+            currencyStatus.setQuantity(Double.parseDouble(cryptoOrderStatusResponse.getQuantity()));
+        } else {
+            currencyStatus.setShouldBuy(true);
+            currencyStatus.setLastSellPrice(lastOrderPrice);
+            if(currencyStatus.getBuyAmount() < lastOrderPrice) {
+                currencyStatus.incRegularSell();
+                currencyStatus.setStopCounter(0);
+            } else {
+                currencyStatus.incStopLossSell();
+                currencyStatus.setStopCounter(120);
+            }
+        }
+        return currencyStatus;
+    }
+
     private boolean updatedToken(String acquiredToken, String token) {
         return acquiredToken != null && !acquiredToken.equals(token);
     }
@@ -98,20 +118,17 @@ public class ControllerService {
             System.out.println("1.5 Hour ago Value: " + initialPrice);
             System.out.println("Current Value: " + lastPrice);
 
-            TransactionUpdate transactionUpdate;
+            String orderId;
             if(cryptoCurrencyStatus.isShouldBuy()) {
-                transactionUpdate = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, cryptoCurrencyStatus);
+                orderId = actionService.analyseBuy(initialPrice, lastPrice, midNightPrice, cryptoCurrencyStatus);
+                pendingOrdersBySymbol.put(symbol, orderId);
             } else {
-                transactionUpdate = actionService.analyseSell(lastPrice, midNightPrice, cryptoCurrencyStatus);
+                orderId = actionService.analyseSell(lastPrice, midNightPrice, cryptoCurrencyStatus);
+                pendingOrdersBySymbol.put(symbol, orderId);
             }
 
-            if (transactionUpdate != null || cryptoCurrencyStatus.getStopCounter() > 0) {
-                if(cryptoCurrencyStatus.getStopCounter() > 0) {
-                    cryptoCurrencyStatus.decStopCounter();
-                } else if (transactionUpdate != null) {
-                    // update Cryto currency as well
-                    pendingOrdersBySymbol.put(symbol, transactionUpdate.getOrderId());
-                }
+            if(cryptoCurrencyStatus.getStopCounter() > 0) {
+                cryptoCurrencyStatus.decStopCounter();
                 updatedStatus.add(cryptoCurrencyStatus);
             }
         } catch (Exception ex) {

@@ -54,6 +54,7 @@ public class DaoService {
     }
 
     public void registerCompletedTransaction(CryptoOrderStatusResponse cryptoOrderStatusResponse) {
+
 //            actionLog = TimeUtil.getCurrentTime() + "," + symbol + "," + type + "," + sellAmount + "," + quantity;
     }
 
