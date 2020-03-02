@@ -50,7 +50,7 @@ public class ActionService {
         if(midNightPrice < 95) {
             targetSelPercent = targetSelPercent - (cryptoCurrencyStatus.getProfitPercent() / 2);
         }
-
+        stopLossPercent = Double.parseDouble("100") - (cryptoCurrencyStatus.getProfitPercent() * 3);
         if (sellPercent > targetSelPercent || sellPercent < stopLossPercent) {
             System.out.println("Selling Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             CryptoOrderResponse sellCrypto = apiService.sellCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(cryptoCurrencyStatus.getQuantity()), String.valueOf(lastPrice));

@@ -33,20 +33,25 @@ public class ControllerService {
         if(!TimeUtil.isDownTime()) {
             DataConfig dataConfig = daoService.getDataConfig();
             dataConfig.getPendingOrders().stream()
-                .map(pendingOrder -> pendingOrder.split("\\|"))
-                .forEach(split -> pendingOrdersBySymbol.put(split[0], split[1]));
+                .map(pendingOrder -> pendingOrder.split(","))
+                .forEach(split -> {
+                    pendingOrdersBySymbol.put(split[0], split[1]);
+                    System.out.println("Pending order to be checked: " + split[0] + ":" + split[1]);
+                });
+
             this.apiService = apiService(dataConfig.getToken());
             String acquiredToken = apiService.acquireToken();
             this.actionService = new ActionService(apiService);
             boolean updatedPendingOrders = false;
 
             for (CryptoCurrencyStatus currencyStatus : dataConfig.getCryptoCurrencyStatuses()) {
+                String symbol = currencyStatus.getSymbol();
                 if (currencyStatus.isPower()) {
-                    String symbol = currencyStatus.getSymbol();
                     if (pendingOrdersBySymbol.containsKey(symbol)) {
                         String previousOrderId = pendingOrdersBySymbol.get(symbol);
                         CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
                         if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+                            dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
                             dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
                             updatedPendingOrders = true;
                             updatedStatus.add(getUpdatedCurrencyStatus(currencyStatus, cryptoOrderStatusResponse));
@@ -54,7 +59,10 @@ public class ControllerService {
                             System.out.println("Skipping crypto as there is a pending order: " + symbol + " with order Id: " + previousOrderId);
                         }
                     } else {
-                        processCrypto(currencyStatus);
+                        if(processCrypto(currencyStatus)) {
+                            dataConfig.addPendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
+                            updatedPendingOrders = true;
+                        }
                     }
                 }
             }
@@ -103,7 +111,7 @@ public class ControllerService {
         return acquiredToken != null && !acquiredToken.equals(token);
     }
 
-    private void processCrypto(CryptoCurrencyStatus cryptoCurrencyStatus) {
+    private boolean processCrypto(CryptoCurrencyStatus cryptoCurrencyStatus) {
         try {
             String symbol = cryptoCurrencyStatus.getSymbol();
             System.out.println("Crypto Details: " + cryptoCurrencyStatus.toString());
@@ -126,17 +134,20 @@ public class ControllerService {
                 orderId = actionService.analyseSell(lastPrice, midNightPrice, cryptoCurrencyStatus);
             }
 
-            if(orderId != null) {
-                pendingOrdersBySymbol.put(symbol, orderId);
-            }
             if(cryptoCurrencyStatus.getStopCounter() > 0) {
                 cryptoCurrencyStatus.decStopCounter();
                 updatedStatus.add(cryptoCurrencyStatus);
+            }
+            if(orderId != null) {
+                pendingOrdersBySymbol.put(symbol, orderId);
+                return true;
             }
         } catch (Exception ex) {
             System.out.println("Exception occured::: ");
             ex.printStackTrace();
         }
+
+        return false;
     }
 
     public static APIService apiService(String token) {

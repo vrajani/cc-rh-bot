@@ -61,10 +61,10 @@ public class DataConfig {
     }
 
     public void addPendingOrder(String symbol, String orderId) {
-        this.pendingOrders.add(symbol + "\\|" + orderId);
+        this.pendingOrders.add(symbol + "," + orderId);
     }
 
     public void removePendingOrder(String symbol, String orderId) {
-        this.pendingOrders.remove(symbol + "\\|" + orderId);
+        this.pendingOrders.remove(symbol + "," + orderId);
     }
 }
