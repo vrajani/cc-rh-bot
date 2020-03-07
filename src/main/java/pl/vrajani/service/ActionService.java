@@ -30,10 +30,15 @@ public class ActionService {
             targetBuyPercent = targetBuyPercent - cryptoCurrencyStatus.getProfitPercent();
         }
 
-        if ((cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < targetBuyPercent || midNightPercent < 96)) ||
+        Double buyAmount = cryptoCurrencyStatus.getBuyAmount();
+        if(cryptoCurrencyStatus.getStopCounter() > 0){
+            buyAmount /= 2;
+        }
+
+        if ((cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < targetBuyPercent || midNightPercent < 95)) ||
                 (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 100 - cryptoCurrencyStatus.getProfitPercent())) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
-            double quantity = cryptoCurrencyStatus.getBuyAmount() / lastPrice;
+            double quantity = buyAmount / lastPrice;
             CryptoOrderResponse buyCrypto = apiService.buyCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(quantity), String.valueOf(lastPrice));
             return buyCrypto.getId();
         }

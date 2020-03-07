@@ -86,7 +86,7 @@ public class ControllerService {
     }
 
     private CryptoCurrencyStatus getUpdatedCurrencyStatus(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
-        Double lastOrderPrice = Double.valueOf(cryptoOrderStatusResponse.getPrice());
+        double lastOrderPrice = Double.parseDouble(cryptoOrderStatusResponse.getPrice());
         if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")){
             currencyStatus.setShouldBuy(false);
             currencyStatus.setLastBuyPrice(lastOrderPrice);
@@ -102,7 +102,7 @@ public class ControllerService {
                 currencyStatus.setStopCounter(120);
             }
 
-            currencyStatus.addProfit(lastOrderPrice - currencyStatus.getLastBuyPrice());
+            currencyStatus.addProfit((lastOrderPrice - currencyStatus.getLastBuyPrice()) * currencyStatus.getQuantity());
         }
         return currencyStatus;
     }

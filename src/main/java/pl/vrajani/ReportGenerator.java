@@ -25,24 +25,29 @@ public class ReportGenerator implements RequestHandler<Object, String> {
             String time = TimeUtil.getCurrentTime();
             List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
             DataConfig dataConfig = daoService.getDataConfig();
-            dataConfig.getCryptoCurrencyStatuses().forEach(cryptoCurrencyStatus -> {
+            dataConfig.getCryptoCurrencyStatuses()
+                .forEach(cryptoCurrencyStatus -> {
+                if(cryptoCurrencyStatus.getStopLossSell() != 0 || cryptoCurrencyStatus.getRegularSell() != 0) {
+                    stringBuilder.append(time)
+                            .append(SEPARATOR)
+                            .append(cryptoCurrencyStatus.getSymbol())
+                            .append(SEPARATOR)
+                            .append(cryptoCurrencyStatus.getProfit())
+                            .append(SEPARATOR)
+                            .append(cryptoCurrencyStatus.getRegularSell())
+                            .append(SEPARATOR)
+                            .append(cryptoCurrencyStatus.getStopLossSell())
+                            .append(System.lineSeparator());
 
-                stringBuilder.append(time)
-                        .append(SEPARATOR)
-                        .append(cryptoCurrencyStatus.getSymbol())
-                        .append(SEPARATOR)
-                        .append(cryptoCurrencyStatus.getProfit())
-                        .append(SEPARATOR)
-                        .append(cryptoCurrencyStatus.getRegularSell())
-                        .append(SEPARATOR)
-                        .append(cryptoCurrencyStatus.getStopLossSell())
-                        .append(System.lineSeparator());
-
-                updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
-
+                    updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
+                } else {
+                    updatedStatuses.add(cryptoCurrencyStatus);
+                }
             });
 
-            daoService.registerTransactionReport(stringBuilder.toString());
+            if(!updatedStatuses.isEmpty()) {
+                daoService.registerTransactionReport(stringBuilder.toString());
+            }
             dataConfig.setCryptoCurrencyStatuses(updatedStatuses);
             daoService.updateConfig(dataConfig);
         } catch (IOException e) {
