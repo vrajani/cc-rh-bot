@@ -52,10 +52,13 @@ public class ControllerService {
                         CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
                         if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
                             dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
-                            dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
                             updatedPendingOrders = true;
                             updatedStatus.add(getUpdatedCurrencyStatus(currencyStatus, cryptoOrderStatusResponse));
-                        } else {
+                        } else if("Canceled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+                            System.out.println("The order was cancelled so removing from pending order: " + symbol + " with order Id: " + previousOrderId);
+                            dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
+                            updatedPendingOrders = true;
+                        }else {
                             System.out.println("Skipping crypto as there is a pending order: " + symbol + " with order Id: " + previousOrderId);
                         }
                     } else {
