@@ -35,7 +35,7 @@ public class ActionService {
             buyAmount /= 2;
         }
 
-        if ((cryptoCurrencyStatus.getStopCounter() <= 0 && (buyPercent < targetBuyPercent || midNightPercent < 95)) ||
+        if ((cryptoCurrencyStatus.getStopCounter() <= 0 && buyPercent < targetBuyPercent) ||
                 (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 100 - cryptoCurrencyStatus.getProfitPercent())) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = buyAmount / lastPrice;

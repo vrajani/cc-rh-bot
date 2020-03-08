@@ -59,7 +59,8 @@ public class ControllerService {
                             dataConfig.removePendingOrder(symbol, pendingOrdersBySymbol.get(symbol));
                             updatedPendingOrders = true;
                         }else {
-                            System.out.println("Skipping crypto as there is a pending order: " + symbol + " with order Id: " + previousOrderId);
+                            System.out.println("Skipping crypto as there is a pending order: " + symbol +
+                                    " with order Id: " + previousOrderId + " at price: " + cryptoOrderStatusResponse.getPrice());
                         }
                     } else {
                         if(processCrypto(currencyStatus)) {
