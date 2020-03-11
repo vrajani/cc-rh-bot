@@ -26,11 +26,12 @@ public class ActionService {
 
         System.out.println("Checking Low Range Buying....");
         double targetBuyPercent = Double.parseDouble("100") - cryptoCurrencyStatus.getProfitPercent();
+        Double buyAmount = cryptoCurrencyStatus.getBuyAmount();
         if(midNightPercent < 95) {
             targetBuyPercent = targetBuyPercent - cryptoCurrencyStatus.getProfitPercent();
+            buyAmount /= 2;
         }
 
-        Double buyAmount = cryptoCurrencyStatus.getBuyAmount();
         if(cryptoCurrencyStatus.getStopCounter() > 0){
             buyAmount /= 2;
         }
