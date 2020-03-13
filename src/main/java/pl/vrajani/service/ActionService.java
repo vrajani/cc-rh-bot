@@ -25,7 +25,7 @@ public class ActionService {
         System.out.println("MidNight Percent: "+ midNightPercent);
 
         System.out.println("Checking Low Range Buying....");
-        double targetBuyPercent = Double.parseDouble("100") - cryptoCurrencyStatus.getProfitPercent();
+        double targetBuyPercent = Double.parseDouble("100") - ( 2 * cryptoCurrencyStatus.getProfitPercent());
         Double buyAmount = cryptoCurrencyStatus.getBuyAmount();
         if(midNightPercent < 95) {
             targetBuyPercent = targetBuyPercent - cryptoCurrencyStatus.getProfitPercent();
@@ -37,7 +37,7 @@ public class ActionService {
         }
 
         if ((cryptoCurrencyStatus.getStopCounter() <= 0 && buyPercent < targetBuyPercent) ||
-                (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 100 - cryptoCurrencyStatus.getProfitPercent())) {
+                (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 100 - ( 2 * cryptoCurrencyStatus.getProfitPercent()))) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = buyAmount / lastPrice;
             CryptoOrderResponse buyCrypto = apiService.buyCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(quantity), String.valueOf(lastPrice));
@@ -56,7 +56,7 @@ public class ActionService {
         if(midNightPrice < 95) {
             targetSelPercent = targetSelPercent - (cryptoCurrencyStatus.getProfitPercent() / 2);
         }
-        stopLossPercent = Double.parseDouble("100") - (cryptoCurrencyStatus.getProfitPercent() * 3);
+        stopLossPercent = Double.parseDouble("100") - (cryptoCurrencyStatus.getProfitPercent() * 5);
         if (sellPercent > targetSelPercent || sellPercent < stopLossPercent) {
             System.out.println("Selling Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             CryptoOrderResponse sellCrypto = apiService.sellCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(cryptoCurrencyStatus.getQuantity()), String.valueOf(lastPrice));

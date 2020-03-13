@@ -121,14 +121,14 @@ public class ControllerService {
             System.out.println("Crypto Details: " + cryptoCurrencyStatus.toString());
 
             CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "5minute");
-            Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 18).getClosePrice());
+            Double initialPrice = Double.valueOf(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 12).getClosePrice());
 
             CryptoHistPrice cryptoHistDayData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "hour");
             Double midNightPrice = Double.valueOf(cryptoHistDayData.getDataPoints().get(0).getClosePrice());
 
             Double lastPrice = Double.valueOf(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
 
-            System.out.println("1.5 Hour ago Value: " + initialPrice);
+            System.out.println("1 Hour ago Value: " + initialPrice);
             System.out.println("Current Value: " + lastPrice);
 
             String orderId;

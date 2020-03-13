@@ -13,7 +13,7 @@ public class TimeUtil {
         int currentHour = utc.get(Calendar.HOUR_OF_DAY);
         int currentMinute = utc.get(Calendar.MINUTE);
 
-        return (currentHour == 22 && currentMinute > 25 )|| (currentHour == 23 && currentMinute < 5 );
+        return (currentHour == 21 && currentMinute > 25 )|| (currentHour == 22 && currentMinute < 5 );
     }
 
     public static String getCurrentTime(){
