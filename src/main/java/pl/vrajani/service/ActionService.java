@@ -22,17 +22,21 @@ public class ActionService {
         double initialPrice = Double.parseDouble(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 12).getClosePrice());
         double dayAgoPrice = Double.parseDouble(cryptoHistHourData.getDataPoints().get(0).getClosePrice());
         double lastPrice = MathUtil.getAmount(Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice()) , 100.10);
+        double tenMinAgoPrice = Double.parseDouble(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 2).getClosePrice());
 
         System.out.println("1 Day ago Value: " + dayAgoPrice);
         System.out.println("1 Hour ago Value: " + initialPrice);
+        System.out.println("10 Min ago Value: " + tenMinAgoPrice);
         System.out.println("Current Value: " + lastPrice);
 
         double stopLossResume = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getLastSellPrice());
         double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
         double midNightPercent = MathUtil.getPercentAmount(lastPrice, dayAgoPrice);
+        double tenMinPercent = MathUtil.getPercentAmount(lastPrice, tenMinAgoPrice);
 
         System.out.println("Buy Percent: "+ buyPercent);
         System.out.println("MidNight Percent: "+ midNightPercent);
+        System.out.println("10 Min Percent: "+ tenMinPercent);
         System.out.println("Checking Low Range Buying....");
 
         double profitPercent = cryptoCurrencyStatus.getProfitPercent();
@@ -48,7 +52,7 @@ public class ActionService {
         }
 
         double targetBuyPercent = Double.parseDouble("100") - profitPercent;
-        if ((cryptoCurrencyStatus.getStopCounter() <= 0 && buyPercent < targetBuyPercent) ||
+        if ((cryptoCurrencyStatus.getStopCounter() <= 0 && buyPercent < targetBuyPercent && tenMinPercent > 98.10) ||
                 (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 100 - profitPercent)) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = buyAmount / lastPrice;
