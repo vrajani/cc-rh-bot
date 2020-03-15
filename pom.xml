@@ -30,7 +30,7 @@
         <dependency>
             <groupId>pl.vrajani</groupId>
             <artifactId>rh-api-library</artifactId>
-            <version>1.0.6</version>
+            <version>1.0.7</version>
         </dependency>
     </dependencies>
 

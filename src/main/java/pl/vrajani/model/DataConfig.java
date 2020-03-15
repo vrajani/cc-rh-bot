@@ -1,5 +1,6 @@
 package pl.vrajani.model;
 
+import java.util.HashMap;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -64,7 +65,7 @@ public class DataConfig {
         this.pendingOrders.add(symbol + "," + orderId);
     }
 
-    public void removePendingOrder(String symbol, String orderId) {
-        this.pendingOrders.remove(symbol + "," + orderId);
+    public void clearPendingOrder() {
+        this.pendingOrders.clear();
     }
 }
