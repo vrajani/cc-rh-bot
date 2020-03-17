@@ -7,8 +7,6 @@ import pl.vrajani.model.CryptoOrderStatusResponse;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.MathUtil;
 
-import java.util.Optional;
-
 public class ActionService {
     private APIService apiService;
 
@@ -16,7 +14,7 @@ public class ActionService {
         this.apiService = apiService;
     }
 
-    Optional<String> executeBuyIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus) {
+    String executeBuyIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus) {
         String symbol = cryptoCurrencyStatus.getSymbol();
         CryptoHistPrice cryptoHistHourData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "5minute");
         double initialPrice = Double.parseDouble(cryptoHistHourData.getDataPoints().get(cryptoHistHourData.getDataPoints().size() - 12).getClosePrice());
@@ -37,7 +35,6 @@ public class ActionService {
         System.out.println("Buy Percent: "+ buyPercent);
         System.out.println("MidNight Percent: "+ midNightPercent);
         System.out.println("10 Min Percent: "+ tenMinPercent);
-        System.out.println("Checking Low Range Buying....");
 
         double profitPercent = cryptoCurrencyStatus.getProfitPercent();
         double buyAmount = cryptoCurrencyStatus.getBuyAmount();
@@ -57,12 +54,12 @@ public class ActionService {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = buyAmount / lastPrice;
             CryptoOrderResponse buyCrypto = apiService.buyCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(quantity), String.valueOf(lastPrice));
-            return Optional.of(buyCrypto.getId());
+            return buyCrypto.getId();
         }
-        return Optional.empty();
+        return null;
     }
 
-    Optional<String> executeStopLossOrderIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
+    String executeStopLossOrderIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
         String symbol = cryptoCurrencyStatus.getSymbol();
         double lastPrice = MathUtil.getAmount(
                 Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice()),
@@ -75,8 +72,8 @@ public class ActionService {
             System.out.println("Cancelling order to stop loss, symbol: " + symbol + " with last price: " + lastPrice);
             apiService.cancelOrder(symbol, cryptoOrderStatusResponse.getCancelUrl());
             CryptoOrderResponse stopLossSellOrder = apiService.sellCrypto(symbol, cryptoOrderStatusResponse.getQuantity(), String.valueOf(lastPrice));
-            return Optional.of(stopLossSellOrder.getId());
+            return stopLossSellOrder.getId();
         }
-        return Optional.empty();
+        return null;
     }
 }
