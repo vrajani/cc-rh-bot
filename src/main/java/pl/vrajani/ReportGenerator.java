@@ -22,23 +22,12 @@ public class ReportGenerator implements RequestHandler<Object, String> {
 
         try {
             StringBuilder stringBuilder = new StringBuilder();
-            String time = TimeUtil.getCurrentTime();
             List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
             DataConfig dataConfig = daoService.getDataConfig();
             dataConfig.getCryptoCurrencyStatuses()
                 .forEach(cryptoCurrencyStatus -> {
                 if(cryptoCurrencyStatus.getStopLossSell() != 0 || cryptoCurrencyStatus.getRegularSell() != 0) {
-                    stringBuilder.append(time)
-                            .append(SEPARATOR)
-                            .append(cryptoCurrencyStatus.getSymbol())
-                            .append(SEPARATOR)
-                            .append(cryptoCurrencyStatus.getProfit())
-                            .append(SEPARATOR)
-                            .append(cryptoCurrencyStatus.getRegularSell())
-                            .append(SEPARATOR)
-                            .append(cryptoCurrencyStatus.getStopLossSell())
-                            .append(System.lineSeparator());
-
+                    getReportData(stringBuilder, cryptoCurrencyStatus);
                     updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
                 } else {
                     updatedStatuses.add(cryptoCurrencyStatus);
@@ -55,6 +44,19 @@ public class ReportGenerator implements RequestHandler<Object, String> {
         }
 
         return "Completed Execution";
+    }
+
+    public static void getReportData(StringBuilder stringBuilder, CryptoCurrencyStatus cryptoCurrencyStatus) {
+        stringBuilder.append(TimeUtil.getCurrentTime())
+                .append(SEPARATOR)
+                .append(cryptoCurrencyStatus.getSymbol())
+                .append(SEPARATOR)
+                .append(cryptoCurrencyStatus.getProfit())
+                .append(SEPARATOR)
+                .append(cryptoCurrencyStatus.getRegularSell())
+                .append(SEPARATOR)
+                .append(cryptoCurrencyStatus.getStopLossSell())
+                .append(System.lineSeparator());
     }
 
     private CryptoCurrencyStatus resetCryptoCurrencyStatus(CryptoCurrencyStatus cryptoCurrencyStatus) {

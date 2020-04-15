@@ -84,7 +84,7 @@ public class ControllerService {
             String previousOrderId = pendingOrdersBySymbol.get(symbol);
             CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
             if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
-                return Optional.of(processFilledOrder(currencyStatus, cryptoOrderStatusResponse));
+                return Optional.of(processFilledOrder(currencyStatus, cryptoOrderStatusResponse, true));
             } else if("Canceled".equalsIgnoreCase(cryptoOrderStatusResponse.getState()) ||
                     "Rejected".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
                 System.out.println("The order was cancelled so removing from pending order: " + symbol + " with order Id: " + previousOrderId);
@@ -107,7 +107,7 @@ public class ControllerService {
         return Optional.empty();
     }
 
-    private CryptoCurrencyStatus processFilledOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
+    public CryptoCurrencyStatus processFilledOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse, boolean shouldExecute) {
         double lastOrderPrice = Double.parseDouble(cryptoOrderStatusResponse.getPrice());
         String symbol = currencyStatus.getSymbol();
         System.out.println("Processing Filled " + cryptoOrderStatusResponse.getSide() + " order:: " + symbol);
@@ -115,12 +115,9 @@ public class ControllerService {
             currencyStatus.setShouldBuy(false);
             currencyStatus.setLastBuyPrice(lastOrderPrice);
             currencyStatus.setQuantity(Double.parseDouble(cryptoOrderStatusResponse.getQuantity()));
-            CryptoOrderResponse cryptoSellOrderResponse = apiService.sellCrypto(symbol, cryptoOrderStatusResponse.getQuantity(),
-                    String.valueOf(MathUtil.getAmount(
-                            Double.parseDouble(cryptoOrderStatusResponse.getPrice()),
-                            Double.parseDouble("100") + currencyStatus.getProfitPercent())));
-            System.out.println("Setting sell order:: " + symbol + " with price: " + cryptoSellOrderResponse.getPrice());
-            pendingOrdersBySymbol.put(symbol, cryptoSellOrderResponse.getId());
+            if(shouldExecute) {
+                setSellOrder(currencyStatus, cryptoOrderStatusResponse, symbol);
+            }
         } else {
             currencyStatus.setShouldBuy(true);
             currencyStatus.setLastSellPrice(lastOrderPrice);
@@ -129,13 +126,22 @@ public class ControllerService {
                 currencyStatus.setStopCounter(0);
             } else {
                 currencyStatus.incStopLossSell();
-                currencyStatus.setStopCounter(120);
+                currencyStatus.setStopCounter(60);
             }
             pendingOrdersBySymbol.remove(symbol);
 
             currencyStatus.addProfit((lastOrderPrice - currencyStatus.getLastBuyPrice()) * currencyStatus.getQuantity());
         }
         return currencyStatus;
+    }
+
+    private void setSellOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse, String symbol) {
+        CryptoOrderResponse cryptoSellOrderResponse = apiService.sellCrypto(symbol, cryptoOrderStatusResponse.getQuantity(),
+                String.valueOf(MathUtil.getAmount(
+                        Double.parseDouble(cryptoOrderStatusResponse.getPrice()),
+                        Double.parseDouble("100") + currencyStatus.getProfitPercent())));
+        System.out.println("Setting sell order:: " + symbol + " with price: " + cryptoSellOrderResponse.getPrice());
+        pendingOrdersBySymbol.put(symbol, cryptoSellOrderResponse.getId());
     }
 
     private boolean updatedToken(String acquiredToken, String token) {
