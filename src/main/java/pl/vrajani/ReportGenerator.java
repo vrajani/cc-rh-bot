@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ReportGenerator implements RequestHandler<Object, String> {
-    private final static String SEPARATOR = ",";
+    public final static String SEPARATOR = ",";
 
     @Override
     public String handleRequest(Object input, Context context) {

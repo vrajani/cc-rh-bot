@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class ActionService {
-    private APIService apiService;
+    private final APIService apiService;
 
     public ActionService(APIService apiService) {
         this.apiService = apiService;
@@ -17,7 +17,7 @@ public class ActionService {
     String executeBuyIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus) {
         String symbol = cryptoCurrencyStatus.getSymbol();
         CryptoHistPrice cryptoDayData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "5minute");
-        double lastPrice = MathUtil.getAmount(Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice()) , 100.10);
+        double lastPrice = Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
 
         List<DataPoint> dataPoints = cryptoDayData.getDataPoints();
         return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, dataPoints.subList(dataPoints.size() - 6, dataPoints.size()), lastPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
@@ -41,7 +41,7 @@ public class ActionService {
         double profitPercent = cryptoCurrencyStatus.getProfitPercent();
         double buyAmount = cryptoCurrencyStatus.getBuyAmount();
 
-        double targetBuyPercent = Double.parseDouble("100") - profitPercent;
+        double targetBuyPercent = 100 - profitPercent;
         if ((cryptoCurrencyStatus.getStopCounter() <= 0 && buyPercent < targetBuyPercent && tenMinPercent > 99.0) ||
                 (cryptoCurrencyStatus.getStopCounter() > 0 && stopLossResume < 100 - profitPercent)) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
@@ -69,18 +69,13 @@ public class ActionService {
         return dummyResponse;
     }
 
-    private boolean isVolatile(double midNightPercent) {
-        return midNightPercent < 93 || midNightPercent > 108;
-    }
-
     String executeStopLossOrderIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
         String symbol = cryptoCurrencyStatus.getSymbol();
-        double lastPrice = MathUtil.getAmount(
-                Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice()),
-                99.90);
+        double lastPrice =
+                Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
         double sellPercent = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getLastBuyPrice());
 
-        double stopLossPercent = Double.parseDouble("100") - (cryptoCurrencyStatus.getProfitPercent() * Double.parseDouble(System.getenv("stop_loss_factor")));
+        double stopLossPercent = 100 - (cryptoCurrencyStatus.getProfitPercent() * Double.parseDouble(System.getenv("stop_loss_factor")));
 
         System.out.println("Sell Low Percent: " + sellPercent);
         if(sellPercent < stopLossPercent) {

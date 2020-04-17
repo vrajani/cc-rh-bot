@@ -139,7 +139,7 @@ public class ControllerService {
         CryptoOrderResponse cryptoSellOrderResponse = apiService.sellCrypto(symbol, cryptoOrderStatusResponse.getQuantity(),
                 String.valueOf(MathUtil.getAmount(
                         Double.parseDouble(cryptoOrderStatusResponse.getPrice()),
-                        Double.parseDouble("100") + currencyStatus.getProfitPercent())));
+                        100 + currencyStatus.getProfitPercent())));
         System.out.println("Setting sell order:: " + symbol + " with price: " + cryptoSellOrderResponse.getPrice());
         pendingOrdersBySymbol.put(symbol, cryptoSellOrderResponse.getId());
     }

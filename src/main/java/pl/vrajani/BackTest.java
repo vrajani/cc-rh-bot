@@ -1,44 +1,71 @@
 package pl.vrajani;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import pl.vrajani.model.CryptoCurrencyStatus;
-import pl.vrajani.model.CryptoHistPrice;
-import pl.vrajani.model.CryptoOrderResponse;
-import pl.vrajani.model.CryptoOrderStatusResponse;
-import pl.vrajani.model.DataPoint;
+import pl.vrajani.model.*;
 import pl.vrajani.service.ActionService;
 import pl.vrajani.service.ControllerService;
 import pl.vrajani.utility.MathUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class BackTest {
 
-    private final double stopLossFactor;
-
-    public BackTest(double stopLossFactor) {
-        this.stopLossFactor = stopLossFactor;
-    }
+    private double stopLossFactor;
 
     public static void main(String[] args) throws IOException {
-        new BackTest(3.4).execute();
+        new BackTest().execute();
     }
 
     private void execute() throws IOException {
+        List<Double> profitPercent = getProfitPercentRange();
+        List<Double> stopLossRange = getStopLossRange();
+
         ObjectMapper objectMapper = new ObjectMapper();
-        String token = "";
+        String token = System.getenv("token");
         CryptoCurrencyStatus testConfig = getTestConfig(objectMapper);
         String symbol = testConfig.getSymbol();
         CryptoHistPrice cryptoHistPriceBySymbol = ControllerService.apiService(token).getCryptoHistPriceBySymbol(symbol, "week", "5minute");
 
-        CryptoCurrencyStatus resultStatus = runTest(cryptoHistPriceBySymbol, testConfig);
         StringBuilder result = new StringBuilder();
-        if (resultStatus != null) {
-            ReportGenerator.getReportData(result, resultStatus);
+        for (Double percent: profitPercent) {
+            for(double stopLoss: stopLossRange) {
+                this.stopLossFactor = stopLoss;
+                testConfig = getTestConfig(objectMapper);
+                testConfig.setProfitPercent(percent);
+                CryptoCurrencyStatus resultStatus = runTest(cryptoHistPriceBySymbol, testConfig);
+                if (resultStatus != null) {
+                    result.append(percent).append(ReportGenerator.SEPARATOR);
+                    result.append(stopLoss).append(ReportGenerator.SEPARATOR);
+                    ReportGenerator.getReportData(result, resultStatus);
+                }
+            }
         }
         System.out.println(result.toString());
+    }
+
+    private List<Double> getProfitPercentRange() {
+        List<Double> profitPercent = new ArrayList<>();
+        double currentPercent = Double.parseDouble("0.10");
+        while(currentPercent < 1.0D) {
+            currentPercent += 0.05D;
+            profitPercent.add(currentPercent);
+        }
+        return profitPercent;
+    }
+
+    private List<Double> getStopLossRange() {
+        List<Double> stopLossRange = new ArrayList<>();
+        double currentPercent = Double.parseDouble("4.0");
+        while(currentPercent <= 7.0) {
+            currentPercent += 0.5;
+            stopLossRange.add(currentPercent);
+        }
+        return stopLossRange;
+//        return Collections.singletonList(0.21);
     }
 
     private CryptoCurrencyStatus runTest(CryptoHistPrice cryptoHistPriceBySymbol, CryptoCurrencyStatus testConfig) {
@@ -57,12 +84,13 @@ public class BackTest {
                 }
             } else {
                 DataPoint currentDataPoint = dataPoints.get(j);
-                double targetPrice = MathUtil.getAmount(testConfig.getLastBuyPrice(), Double.parseDouble("100") + testConfig.getProfitPercent());
-                double targetStopLossPrice = MathUtil.getAmount(testConfig.getLastBuyPrice(), Double.parseDouble("100") - (testConfig.getProfitPercent() * this.stopLossFactor));
-                double highPriceOfCurrentDataPoint = Double.parseDouble(currentDataPoint.getHighPrice());
+                double targetPrice = MathUtil.getAmount(testConfig.getLastBuyPrice(), 100 + testConfig.getProfitPercent());
+                double targetStopLossPrice = MathUtil.getAmount(testConfig.getLastBuyPrice(), 100 - (testConfig.getProfitPercent() * this.stopLossFactor));
+                double highPriceOfCurrentDataPoint = MathUtil.getAmount(Double.parseDouble(currentDataPoint.getHighPrice()), 99.90);
+                double lowPriceOfCurrentDataPoint = MathUtil.getAmount(Double.parseDouble(currentDataPoint.getLowPrice()), 100.1);
 
                 boolean stoploss = highPriceOfCurrentDataPoint < targetStopLossPrice;
-                boolean sell = Double.parseDouble(currentDataPoint.getLowPrice()) < targetPrice && targetPrice < highPriceOfCurrentDataPoint;
+                boolean sell = lowPriceOfCurrentDataPoint < targetPrice && targetPrice < highPriceOfCurrentDataPoint;
                 if ( sell || stoploss) {
                     double sellPrice = stoploss ? targetStopLossPrice : targetPrice;
                     String msg = stoploss?  "Sell stop loss Order Executed: " : "Sell Order Executed: ";
