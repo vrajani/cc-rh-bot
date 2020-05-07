@@ -5,8 +5,9 @@ public class CryptoStatusBase {
     boolean power;
     double profit;
     boolean shouldBuy;
-    Double profitPercent;
-    Double buyAmount;
+    double profitPercent;
+    double buyPercent;
+    double buyAmount;
 
     public String getSymbol() {
         return symbol;
@@ -32,19 +33,19 @@ public class CryptoStatusBase {
         this.shouldBuy = shouldBuy;
     }
 
-    public Double getProfitPercent() {
+    public double getProfitPercent() {
         return profitPercent;
     }
 
-    public void setProfitPercent(Double profitPercent) {
+    public void setProfitPercent(double profitPercent) {
         this.profitPercent = profitPercent;
     }
 
-    public Double getBuyAmount() {
+    public double getBuyAmount() {
         return buyAmount;
     }
 
-    public void setBuyAmount(Double buyAmount) {
+    public void setBuyAmount(double buyAmount) {
         this.buyAmount = buyAmount;
     }
 
@@ -58,5 +59,13 @@ public class CryptoStatusBase {
 
     public void addProfit(double change) {
         this.profit = this.profit + change;
+    }
+
+    public double getBuyPercent() {
+        return buyPercent;
+    }
+
+    public void setBuyPercent(double buyPercent) {
+        this.buyPercent = buyPercent;
     }
 }

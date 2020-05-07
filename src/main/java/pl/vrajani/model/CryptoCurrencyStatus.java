@@ -5,40 +5,41 @@ public class CryptoCurrencyStatus extends CryptoStatusBase {
     int regularSell;
     int stopLossSell;
     double quantity;
-    Double lastBuyPrice;
-    Double lastSellPrice;
+    double lastBuyPrice;
+    double lastSellPrice;
 
-    public Double getLastBuyPrice() {
+    public double getLastBuyPrice() {
         return lastBuyPrice;
     }
 
-    public void setLastBuyPrice(Double lastBuyPrice) {
+    public void setLastBuyPrice(double lastBuyPrice) {
         this.lastBuyPrice = lastBuyPrice;
     }
 
-    public Double getLastSellPrice() {
+    public double getLastSellPrice() {
         return lastSellPrice;
     }
 
-    public void setLastSellPrice(Double lastSellPrice) {
+    public void setLastSellPrice(double lastSellPrice) {
         this.lastSellPrice = lastSellPrice;
     }
 
     @Override
     public String toString() {
-        return new StringBuilder().append("{[symbol=").append(symbol)
-                .append("],[stopCounter=").append(stopCounter)
-                .append("],[regularSell=").append(regularSell)
-                .append("],[stopLossSell=").append(stopLossSell)
-                .append("],[shouldBuy=").append(shouldBuy)
-                .append("],[power=").append(power)
-                .append("],[profitPercent=").append(profitPercent)
-                .append("],[lastBuyPrice=").append(lastBuyPrice)
-                .append("],[lastSellPrice=").append(lastSellPrice)
-                .append("],[buyAmount=").append(buyAmount)
-                .append("],[quantity=").append(quantity)
-                .append("],[profit=").append(profit)
-                .append("]}").toString();
+        return "{[symbol=" + symbol +
+                "],[stopCounter=" + stopCounter +
+                "],[regularSell=" + regularSell +
+                "],[stopLossSell=" + stopLossSell +
+                "],[shouldBuy=" + shouldBuy +
+                "],[power=" + power +
+                "],[profitPercent=" + profitPercent +
+                "],[lastBuyPrice=" + lastBuyPrice +
+                "],[lastSellPrice=" + lastSellPrice +
+                "],[buyAmount=" + buyAmount +
+                "],[quantity=" + quantity +
+                "],[profit=" + profit +
+                "],[buyPercent=" + buyPercent +
+                "]}";
     }
 
     public int getStopCounter() {

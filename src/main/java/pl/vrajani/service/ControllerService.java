@@ -15,10 +15,10 @@ import java.util.List;
 import java.util.Optional;
 
 public class ControllerService {
+    private final DaoService daoService;
+    private final HashMap<String, String> pendingOrdersBySymbol;
+    private final List<CryptoCurrencyStatus> updatedStatus;
     private APIService apiService;
-    private DaoService daoService;
-    private HashMap<String, String> pendingOrdersBySymbol;
-    private List<CryptoCurrencyStatus> updatedStatus;
     private ActionService actionService;
 
     public ControllerService(DaoService daoService) {
@@ -28,43 +28,45 @@ public class ControllerService {
         this.updatedStatus = new ArrayList<>();
     }
 
+    private boolean shouldProcess() {
+        return !TimeUtil.isDownTime() && !TimeUtil.isBadTimeOfTheWeek();
+    }
+
     public void checkAllCrypto() throws IOException {
         System.out.println("Initiating the check::::");
 
-        if(!TimeUtil.isDownTime()) {
+        if(shouldProcess()) {
             DataConfig dataConfig = daoService.getDataConfig();
-            dataConfig.getPendingOrders().stream()
-                .map(pendingOrder -> pendingOrder.split(","))
-                .forEach(split -> {
-                    System.out.println("Pending order to be checked: " + split[0] + ":" + split[1]);
-                    pendingOrdersBySymbol.put(split[0], split[1]);
-                });
-
-            this.apiService = apiService(dataConfig.getToken());
-            String acquiredToken = apiService.acquireToken();
-            this.actionService = new ActionService(apiService);
+            String acquiredToken = initAndAcquireToken(dataConfig);
             boolean didUpdateCurrencyStatus = false;
-
             HashMap<String, String> pendingOrdersBySymbolBefore = new HashMap<>(pendingOrdersBySymbol);
+
             for (CryptoCurrencyStatus currencyStatus : dataConfig.getCryptoCurrencyStatuses()) {
                 if (currencyStatus.isPower()) {
-                    if(currencyStatus.getStopCounter() > 0) {
-                        currencyStatus.decStopCounter();
-                        didUpdateCurrencyStatus = true;
-                    }
-                    Optional<CryptoCurrencyStatus> updatedCurrencyStatus = processCrypto(currencyStatus);
-                    if(updatedCurrencyStatus.isPresent()) {
-                        didUpdateCurrencyStatus = true;
-                        updatedStatus.add(updatedCurrencyStatus.get());
+                    if (isValidState(currencyStatus, pendingOrdersBySymbolBefore.containsKey(currencyStatus.getSymbol()))) {
+                        if (currencyStatus.getStopCounter() > 0) {
+                            currencyStatus.decStopCounter();
+                            didUpdateCurrencyStatus = true;
+                        }
+                        Optional<CryptoCurrencyStatus> updatedCurrencyStatus = processCrypto(currencyStatus);
+                        if (updatedCurrencyStatus.isPresent()) {
+                            didUpdateCurrencyStatus = true;
+                            updatedStatus.add(updatedCurrencyStatus.get());
+                        } else {
+                            updatedStatus.add(currencyStatus);
+                        }
                     } else {
+                        System.out.println("Currency status is not in a valid state: " + currencyStatus.toString());
+                        currencyStatus.setShouldBuy(true);
                         updatedStatus.add(currencyStatus);
+                        didUpdateCurrencyStatus = true;
                     }
                 } else {
                     updatedStatus.add(currencyStatus);
                 }
             }
 
-            if(didUpdateCurrencyStatus || updatedToken(acquiredToken, dataConfig.getToken()) || !pendingOrdersBySymbolBefore.equals(pendingOrdersBySymbol)){
+            if (didUpdateCurrencyStatus || updatedToken(acquiredToken, dataConfig.getToken()) || !pendingOrdersBySymbolBefore.equals(pendingOrdersBySymbol)) {
                 dataConfig.setCryptoCurrencyStatuses(updatedStatus);
                 dataConfig.clearPendingOrder();
                 this.pendingOrdersBySymbol.keySet()
@@ -75,6 +77,24 @@ public class ControllerService {
         } else {
             System.out.println("It is DownTime. Waiting...");
         }
+    }
+
+    public String initAndAcquireToken(DataConfig dataConfig) {
+        dataConfig.getPendingOrders().stream()
+            .map(pendingOrder -> pendingOrder.split(","))
+            .forEach(split -> {
+                System.out.println("Pending order to be checked: " + split[0] + ":" + split[1]);
+                pendingOrdersBySymbol.put(split[0], split[1]);
+            });
+
+        this.apiService = apiService(dataConfig.getToken());
+        String acquiredToken = apiService.acquireToken();
+        this.actionService = new ActionService(apiService);
+        return acquiredToken;
+    }
+
+    private boolean isValidState(CryptoCurrencyStatus currencyStatus, boolean hasPendingOrder) {
+        return hasPendingOrder || currencyStatus.isShouldBuy();
     }
 
     private Optional<CryptoCurrencyStatus> processCrypto(CryptoCurrencyStatus currencyStatus) {

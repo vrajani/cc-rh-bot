@@ -20,4 +20,11 @@ public class TimeUtil {
         Date date = new Date();
         return dateFormat.format(date);
     }
+
+    public static boolean isBadTimeOfTheWeek() {
+        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        int dayOfWeek = utc.get(Calendar.DAY_OF_WEEK);
+        int currentHour = utc.get(Calendar.HOUR_OF_DAY);
+        return (dayOfWeek == 1 && currentHour > 10) || (dayOfWeek==2 && currentHour < 18);
+    }
 }
