@@ -20,32 +20,35 @@ public class BackTest {
     }
 
     private void execute() throws IOException {
+        this.stopLossFactor = 4;
         List<Double> profitPercentRange = getProfitPercentRange();
         List<Double> buyPercentRange = getProfitPercentRange();
         List<Double> stopLossRange = getStopLossRange();
+        List<CryptoCurrencyStatus> results = new ArrayList<>();
 
         ObjectMapper objectMapper = new ObjectMapper();
         String token = System.getenv("token");
         CryptoCurrencyStatus testConfig = getTestConfig(objectMapper);
         String symbol = testConfig.getSymbol();
-        CryptoHistPrice cryptoHistPriceBySymbol = ControllerService.apiService(token).getCryptoHistPriceBySymbol(symbol, "week", "5minute");
+        CryptoHistPrice cryptoHistPriceBySymbol = Application.getApiService(token).getCryptoHistPriceBySymbol(symbol, "week", "5minute");
 
         StringBuilder result = new StringBuilder();
         for (Double percent: profitPercentRange) {
             for (Double buyPercent : buyPercentRange) {
-                for (double stopLoss : stopLossRange) {
-                    this.stopLossFactor = stopLoss;
+//                for (double stopLoss : stopLossRange) {
+//                    this.stopLossFactor = stopLoss;
                     testConfig = getTestConfig(objectMapper);
                     testConfig.setProfitPercent(percent);
                     testConfig.setBuyPercent(buyPercent);
                     CryptoCurrencyStatus resultStatus = runTest(cryptoHistPriceBySymbol, testConfig);
-                    if (resultStatus != null) {
+                    if (resultStatus != null && resultStatus.getRegularSell() != 0) {
                         result.append(percent).append(ReportGenerator.SEPARATOR);
                         result.append(buyPercent).append(ReportGenerator.SEPARATOR);
-                        result.append(stopLoss).append(ReportGenerator.SEPARATOR);
+//                        result.append(stopLoss).append(ReportGenerator.SEPARATOR);
                         ReportGenerator.getReportData(result, resultStatus);
+                        results.add(resultStatus);
                     }
-                }
+//                }
             }
         }
         System.out.println(result.toString());
@@ -54,9 +57,13 @@ public class BackTest {
     private List<Double> getProfitPercentRange() {
         List<Double> profitPercent = new ArrayList<>();
         double currentPercent = 0.2;
-        while(currentPercent < 0.9) {
+        while(currentPercent <= 1.0) {
             profitPercent.add(currentPercent);
             currentPercent += 0.05;
+        }
+        while(currentPercent < 9.0) {
+            profitPercent.add(currentPercent);
+            currentPercent += 0.5;
         }
         return profitPercent;
     }
@@ -77,7 +84,7 @@ public class BackTest {
         List<DataPoint> dataPoints = cryptoHistPriceBySymbol.getDataPoints();
         int i = 0;
         for (int j = 0; j < dataPoints.size() - 1; i++) {
-            j = i + 9;
+            j = i + 6;
             System.out.println("Testing for Starting time: " + dataPoints.get(j).toString());
             if (testConfig.isShouldBuy()) {
                 CryptoOrderResponse cryptoOrderResponse = actionService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), false);

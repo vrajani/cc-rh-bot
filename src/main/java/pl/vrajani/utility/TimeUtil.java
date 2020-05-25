@@ -1,6 +1,9 @@
 package pl.vrajani.utility;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -22,9 +25,22 @@ public class TimeUtil {
     }
 
     public static boolean isBadTimeOfTheWeek() {
-        Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        int dayOfWeek = utc.get(Calendar.DAY_OF_WEEK);
-        int currentHour = utc.get(Calendar.HOUR_OF_DAY);
-        return (dayOfWeek == 1 && currentHour > 10) || (dayOfWeek==2 && currentHour < 18);
+        String noWeekends = System.getenv("noWeekends");
+        if(noWeekends.equalsIgnoreCase("true") ) {
+            Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            int dayOfWeek = utc.get(Calendar.DAY_OF_WEEK);
+            int currentHour = utc.get(Calendar.HOUR_OF_DAY);
+            return (dayOfWeek == 1 && currentHour > 10) || (dayOfWeek == 2 && currentHour < 18);
+        }
+        return false;
+    }
+
+    public static boolean isPendingOrderForLong(String createdAt, int waitInMinutes) {
+        createdAt = createdAt.substring(0, 23);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        LocalDateTime localDateTime = LocalDateTime.parse(createdAt, formatter);
+        LocalDateTime threeHrsAgo = LocalDateTime.now().minusMinutes(waitInMinutes); // now in UTC
+        System.out.println("four hours ago time: " + threeHrsAgo.format(formatter));
+        return localDateTime.isBefore(threeHrsAgo);
     }
 }

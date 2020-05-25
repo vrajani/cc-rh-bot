@@ -1,5 +1,6 @@
 package pl.vrajani.service;
 
+import pl.vrajani.Application;
 import pl.vrajani.model.CryptoCurrencyStatus;
 import pl.vrajani.model.CryptoOrderResponse;
 import pl.vrajani.model.CryptoOrderStatusResponse;
@@ -43,11 +44,7 @@ public class ControllerService {
 
             for (CryptoCurrencyStatus currencyStatus : dataConfig.getCryptoCurrencyStatuses()) {
                 if (currencyStatus.isPower()) {
-                    if (isValidState(currencyStatus, pendingOrdersBySymbolBefore.containsKey(currencyStatus.getSymbol()))) {
-                        if (currencyStatus.getStopCounter() > 0) {
-                            currencyStatus.decStopCounter();
-                            didUpdateCurrencyStatus = true;
-                        }
+                    if (isValidState(currencyStatus, pendingOrdersBySymbolBefore.containsKey(currencyStatus.getCcId()))) {
                         Optional<CryptoCurrencyStatus> updatedCurrencyStatus = processCrypto(currencyStatus);
                         if (updatedCurrencyStatus.isPresent()) {
                             didUpdateCurrencyStatus = true;
@@ -66,17 +63,21 @@ public class ControllerService {
                 }
             }
 
-            if (didUpdateCurrencyStatus || updatedToken(acquiredToken, dataConfig.getToken()) || !pendingOrdersBySymbolBefore.equals(pendingOrdersBySymbol)) {
+            if (isConfigUpdated(acquiredToken, didUpdateCurrencyStatus, pendingOrdersBySymbolBefore, dataConfig.getToken())) {
                 dataConfig.setCryptoCurrencyStatuses(updatedStatus);
                 dataConfig.clearPendingOrder();
                 this.pendingOrdersBySymbol.keySet()
-                        .forEach(symbol -> dataConfig.addPendingOrder(symbol, this.pendingOrdersBySymbol.get(symbol)));
+                        .forEach(ccId -> dataConfig.addPendingOrder(ccId, this.pendingOrdersBySymbol.get(ccId)));
                 dataConfig.setToken(acquiredToken);
                 daoService.updateConfig(dataConfig);
             }
         } else {
             System.out.println("It is DownTime. Waiting...");
         }
+    }
+
+    public boolean isConfigUpdated(String acquiredToken, boolean didUpdateCurrencyStatus, HashMap<String, String> pendingOrdersBySymbolBefore, String newToken) {
+        return didUpdateCurrencyStatus || updatedToken(acquiredToken, newToken) || !pendingOrdersBySymbolBefore.equals(pendingOrdersBySymbol);
     }
 
     public String initAndAcquireToken(DataConfig dataConfig) {
@@ -87,10 +88,9 @@ public class ControllerService {
                 pendingOrdersBySymbol.put(split[0], split[1]);
             });
 
-        this.apiService = apiService(dataConfig.getToken());
-        String acquiredToken = apiService.acquireToken();
+        this.apiService = Application.getApiService(dataConfig.getToken());
         this.actionService = new ActionService(apiService);
-        return acquiredToken;
+        return apiService.acquireToken();
     }
 
     private boolean isValidState(CryptoCurrencyStatus currencyStatus, boolean hasPendingOrder) {
@@ -98,86 +98,87 @@ public class ControllerService {
     }
 
     private Optional<CryptoCurrencyStatus> processCrypto(CryptoCurrencyStatus currencyStatus) {
-        String symbol = currencyStatus.getSymbol();
-        System.out.println("Working with Crypto :: " + symbol);
-        if (pendingOrdersBySymbol.containsKey(symbol)) {
-            String previousOrderId = pendingOrdersBySymbol.get(symbol);
-            CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
-            if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
-                return Optional.of(processFilledOrder(currencyStatus, cryptoOrderStatusResponse, true));
-            } else if("Canceled".equalsIgnoreCase(cryptoOrderStatusResponse.getState()) ||
-                    "Rejected".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
-                System.out.println("The order was cancelled so removing from pending order: " + symbol + " with order Id: " + previousOrderId);
-                pendingOrdersBySymbol.remove(symbol);
-            } else {
-                System.out.println("Skipping crypto as there is a pending order: " + symbol +
-                        " with order Id: " + previousOrderId + " at price: " + cryptoOrderStatusResponse.getPrice());
-                if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell")){
-                    Optional<String> stopLossOrderId = Optional.ofNullable(actionService.executeStopLossOrderIfPriceDown(currencyStatus, cryptoOrderStatusResponse));
-                    stopLossOrderId.ifPresent(s -> pendingOrdersBySymbol.put(symbol, s));
-                }
-            }
-        } else {
-            if(currencyStatus.isShouldBuy()) {
-                System.out.println("Checking Buy Order:: " + symbol);
+        String ccId = currencyStatus.getCcId();
+        System.out.println("Working with Crypto :: " + ccId);
+        if (pendingOrdersBySymbol.containsKey(ccId)) {
+            return processPendingOrder(currencyStatus);
+        } else if(currencyStatus.isShouldBuy()) {
+                System.out.println("Checking Buy Order:: " + ccId);
                 Optional<String> orderId = Optional.ofNullable(actionService.executeBuyIfPriceDown(currencyStatus));
-                orderId.ifPresent(s -> pendingOrdersBySymbol.put(symbol, s));
-            }
+                orderId.ifPresent(s -> pendingOrdersBySymbol.put(ccId, s));
         }
         return Optional.empty();
     }
 
+    private Optional<CryptoCurrencyStatus> processPendingOrder(CryptoCurrencyStatus currencyStatus) {
+        String symbol = currencyStatus.getSymbol();
+        String ccId = currencyStatus.getCcId();
+        String previousOrderId = pendingOrdersBySymbol.get(ccId);
+        CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
+        if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+            return Optional.of(processFilledOrder(currencyStatus, cryptoOrderStatusResponse, true));
+        } else if("Canceled".equalsIgnoreCase(cryptoOrderStatusResponse.getState()) ||
+                "Rejected".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+            System.out.println("The order was cancelled so removing from pending order: " + ccId + " with order Id: " + previousOrderId);
+            pendingOrdersBySymbol.remove(ccId);
+        } else if (TimeUtil.isPendingOrderForLong(cryptoOrderStatusResponse.getCreatedAt(), currencyStatus.getWaitInMinutes())) {
+
+            if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")) {
+                System.out.println("Cancelling buy order as it was pending for a long time. Symbol " + ccId + " at Price: " + cryptoOrderStatusResponse.getPrice());
+                apiService.cancelOrder(symbol, cryptoOrderStatusResponse.getCancelUrl());
+            } else if(!isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus)) {
+                double percent = 100.0 + (currencyStatus.getProfitPercent() / 2);
+                double sellPrice = MathUtil.getAmount(currencyStatus.getLastBuyPrice(), percent);
+                System.out.println("Selling as the order has been pending for long. symbol - " + ccId + " with limit price " + sellPrice);
+                apiService.cancelOrder(symbol, cryptoOrderStatusResponse.getCancelUrl());
+                setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
+            }
+        } else {
+            System.out.println("Skipping crypto as there is a pending order: " + ccId +
+                    " with order Id: " + previousOrderId + " at price: " + cryptoOrderStatusResponse.getPrice());
+        }
+        return Optional.empty();
+    }
+
+    private boolean isPendingOrderAlreadyReduced(CryptoOrderStatusResponse cryptoOrderStatusResponse, CryptoCurrencyStatus currencyStatus) {
+        return cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
+                Double.parseDouble(cryptoOrderStatusResponse.getPrice()) <
+                        MathUtil.getAmount(currencyStatus.getLastBuyPrice(), 100 + currencyStatus.getProfitPercent());
+    }
+
     public CryptoCurrencyStatus processFilledOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse, boolean shouldExecute) {
         double lastOrderPrice = Double.parseDouble(cryptoOrderStatusResponse.getPrice());
-        String symbol = currencyStatus.getSymbol();
-        System.out.println("Processing Filled " + cryptoOrderStatusResponse.getSide() + " order:: " + symbol);
+        String ccId = currencyStatus.getCcId();
+        System.out.println("Processing Filled " + cryptoOrderStatusResponse.getSide() + " order:: " + ccId);
         if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")){
             currencyStatus.setShouldBuy(false);
             currencyStatus.setLastBuyPrice(lastOrderPrice);
             currencyStatus.setQuantity(Double.parseDouble(cryptoOrderStatusResponse.getQuantity()));
             if(shouldExecute) {
-                setSellOrder(currencyStatus, cryptoOrderStatusResponse, symbol);
+                double amount = MathUtil.getAmount(Double.parseDouble(cryptoOrderStatusResponse.getPrice()),
+                        100 + currencyStatus.getProfitPercent());
+                setSellOrder(currencyStatus, cryptoOrderStatusResponse, amount);
             }
         } else {
             currencyStatus.setShouldBuy(true);
-            currencyStatus.setLastSellPrice(lastOrderPrice);
-            if(currencyStatus.getLastBuyPrice() < lastOrderPrice) {
-                currencyStatus.incRegularSell();
-                currencyStatus.setStopCounter(0);
-            } else {
-                currencyStatus.incStopLossSell();
-                currencyStatus.setStopCounter(60);
-            }
-            pendingOrdersBySymbol.remove(symbol);
-
             currencyStatus.addProfit((lastOrderPrice - currencyStatus.getLastBuyPrice()) * currencyStatus.getQuantity());
+            currencyStatus.incRegularSell();
+
+            pendingOrdersBySymbol.remove(ccId);
         }
         return currencyStatus;
     }
 
-    private void setSellOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse, String symbol) {
-        CryptoOrderResponse cryptoSellOrderResponse = apiService.sellCrypto(symbol, cryptoOrderStatusResponse.getQuantity(),
-                String.valueOf(MathUtil.getAmount(
-                        Double.parseDouble(cryptoOrderStatusResponse.getPrice()),
-                        100 + currencyStatus.getProfitPercent())));
-        System.out.println("Setting sell order:: " + symbol + " with price: " + cryptoSellOrderResponse.getPrice());
-        pendingOrdersBySymbol.put(symbol, cryptoSellOrderResponse.getId());
+    public void setSellOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse, double price) {
+        CryptoOrderResponse cryptoSellOrderResponse = apiService.sellCrypto(currencyStatus.getSymbol(), cryptoOrderStatusResponse.getQuantity(),
+                String.valueOf(price));
+        System.out.println("Setting sell order:: " + currencyStatus.getCcId() + " with price: " + cryptoSellOrderResponse.getPrice());
+        pendingOrdersBySymbol.put(currencyStatus.getCcId(), cryptoSellOrderResponse.getId());
     }
 
     private boolean updatedToken(String acquiredToken, String token) {
         return acquiredToken != null && !acquiredToken.equals(token);
     }
 
-    public static APIService apiService(String token) {
-        HashMap<String, String> properties = new HashMap<>();
-        properties.put("username", System.getenv("username"));
-        properties.put("password", System.getenv("password"));
-        properties.put("grant_type", "password");
-        properties.put("client_id", System.getenv("client_id"));
-        properties.put("account_id", System.getenv("account_id"));
-        properties.put("accountId", System.getenv("accountId"));
-        properties.put("token", token);
 
-        return new APIService(properties);
-    }
 }

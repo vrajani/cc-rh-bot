@@ -1,6 +1,7 @@
 package pl.vrajani.model;
 
 public class CryptoStatusBase {
+    String ccId;
     String symbol;
     boolean power;
     double profit;
@@ -13,16 +14,8 @@ public class CryptoStatusBase {
         return symbol;
     }
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
-
     public boolean isPower() {
         return power;
-    }
-
-    public void setPower(boolean power) {
-        this.power = power;
     }
 
     public boolean isShouldBuy() {
@@ -45,10 +38,6 @@ public class CryptoStatusBase {
         return buyAmount;
     }
 
-    public void setBuyAmount(double buyAmount) {
-        this.buyAmount = buyAmount;
-    }
-
     public double getProfit() {
         return profit;
     }
@@ -68,4 +57,9 @@ public class CryptoStatusBase {
     public void setBuyPercent(double buyPercent) {
         this.buyPercent = buyPercent;
     }
+
+    public String getCcId() {
+        return ccId;
+    }
+
 }

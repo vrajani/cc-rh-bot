@@ -1,9 +1,11 @@
 package pl.vrajani.service;
 
-import pl.vrajani.model.*;
+import pl.vrajani.model.CryptoCurrencyStatus;
+import pl.vrajani.model.CryptoHistPrice;
+import pl.vrajani.model.CryptoOrderResponse;
+import pl.vrajani.model.DataPoint;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.MathUtil;
-import pl.vrajani.utility.TimeUtil;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,35 +23,28 @@ public class ActionService {
         double lastPrice = Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
 
         List<DataPoint> dataPoints = cryptoDayData.getDataPoints();
-        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, dataPoints.subList(dataPoints.size() - 6, dataPoints.size()), lastPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
+        int duration = Integer.parseInt(System.getenv("duration"));
+        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, dataPoints.subList(dataPoints.size() - duration, dataPoints.size()), lastPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
     }
 
     public CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, List<DataPoint> dataPoints, double lastPrice, boolean shouldExecute) {
         double initialPrice = Double.parseDouble(dataPoints.get(0).getClosePrice());
         double tenMinAgoPrice = Double.parseDouble(dataPoints.get(dataPoints.size() - 2).getClosePrice());
-
-        System.out.println("30 Min ago Value: " + initialPrice);
-        System.out.println("10 Min ago Value: " + tenMinAgoPrice);
-        System.out.println("Current Value: " + lastPrice);
-
         double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
         double tenMinPercent = MathUtil.getPercentAmount(lastPrice, tenMinAgoPrice);
 
-        System.out.println("Buy Percent: "+ buyPercent);
-        System.out.println("10 Min Percent: "+ tenMinPercent);
+        System.out.println("Current Value: " + lastPrice
+                         + "\n10 Min ago Value: " + tenMinAgoPrice
+                         + "\n10 Min Percent: "+ tenMinPercent
+                         + "\n30 Min ago Value: " + initialPrice
+                         + "\nBuy Percent: "+ buyPercent);
 
-        double profitPercent = cryptoCurrencyStatus.getBuyPercent();
-        double buyAmount = cryptoCurrencyStatus.getBuyAmount();
-
-        double targetBuyPercent = 100 - profitPercent;
-        if ((buyPercent < targetBuyPercent && tenMinPercent > 99.35)) {
+        double targetBuyPercent = 100 - cryptoCurrencyStatus.getBuyPercent();
+        if ((buyPercent < targetBuyPercent && tenMinPercent > 99.45)) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
-            double quantity = buyAmount / lastPrice;
-            if(shouldExecute) {
-                return execute(cryptoCurrencyStatus, lastPrice, quantity);
-            } else {
-                return getDummyCryptoOrderResponse(lastPrice, quantity);
-            }
+            double quantity = cryptoCurrencyStatus.getBuyAmount() / lastPrice;
+            return shouldExecute ? execute(cryptoCurrencyStatus, lastPrice, quantity) :
+                    getDummyCryptoOrderResponse(lastPrice, quantity);
         }
         return null;
     }
@@ -66,28 +61,5 @@ public class ActionService {
         dummyResponse.setState("filled");
         dummyResponse.setId("DUMMY_RESPONSE_ID");
         return dummyResponse;
-    }
-
-    String executeStopLossOrderIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
-        String symbol = cryptoCurrencyStatus.getSymbol();
-        double lastPrice =
-                Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
-        double sellPercent = MathUtil.getPercentAmount(lastPrice, cryptoCurrencyStatus.getLastBuyPrice());
-
-        double stopLossPercent = 100 - (cryptoCurrencyStatus.getProfitPercent() * Double.parseDouble(System.getenv("stop_loss_factor")));
-
-        System.out.println("Sell Low Percent: " + sellPercent);
-        if(sellPercent < stopLossPercent) {
-            System.out.println("Cancelling order to stop loss, symbol: " + symbol + " with last price: " + lastPrice);
-            apiService.cancelOrder(symbol, cryptoOrderStatusResponse.getCancelUrl());
-            try{
-                CryptoOrderResponse stopLossSellOrder = apiService.sellCrypto(symbol, cryptoOrderStatusResponse.getQuantity(), String.valueOf(lastPrice));
-                return stopLossSellOrder.getId();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                return null;
-            }
-        }
-        return null;
     }
 }

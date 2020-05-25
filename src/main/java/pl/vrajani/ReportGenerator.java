@@ -26,7 +26,7 @@ public class ReportGenerator implements RequestHandler<Object, String> {
             DataConfig dataConfig = daoService.getDataConfig();
             dataConfig.getCryptoCurrencyStatuses()
                 .forEach(cryptoCurrencyStatus -> {
-                if(cryptoCurrencyStatus.getStopLossSell() != 0 || cryptoCurrencyStatus.getRegularSell() != 0) {
+                if(cryptoCurrencyStatus.getRegularSell() != 0) {
                     getReportData(stringBuilder, cryptoCurrencyStatus);
                     updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
                 } else {
@@ -49,20 +49,17 @@ public class ReportGenerator implements RequestHandler<Object, String> {
     public static void getReportData(StringBuilder stringBuilder, CryptoCurrencyStatus cryptoCurrencyStatus) {
         stringBuilder.append(TimeUtil.getCurrentTime())
                 .append(SEPARATOR)
-                .append(cryptoCurrencyStatus.getSymbol())
+                .append(cryptoCurrencyStatus.getCcId())
                 .append(SEPARATOR)
                 .append(cryptoCurrencyStatus.getProfit())
                 .append(SEPARATOR)
                 .append(cryptoCurrencyStatus.getRegularSell())
-                .append(SEPARATOR)
-                .append(cryptoCurrencyStatus.getStopLossSell())
                 .append(System.lineSeparator());
     }
 
     private CryptoCurrencyStatus resetCryptoCurrencyStatus(CryptoCurrencyStatus cryptoCurrencyStatus) {
         cryptoCurrencyStatus.setProfit(0);
         cryptoCurrencyStatus.setRegularSell(0);
-        cryptoCurrencyStatus.setStopLossSell(0);
         return cryptoCurrencyStatus;
     }
 }
