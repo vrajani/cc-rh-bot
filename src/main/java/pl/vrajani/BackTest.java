@@ -9,21 +9,19 @@ import pl.vrajani.utility.MathUtil;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class BackTest {
 
-    private double stopLossFactor;
 
     public static void main(String[] args) throws IOException {
         new BackTest().execute();
     }
 
     private void execute() throws IOException {
-        this.stopLossFactor = 4;
         List<Double> profitPercentRange = getProfitPercentRange();
         List<Double> buyPercentRange = getProfitPercentRange();
-        List<Double> stopLossRange = getStopLossRange();
         List<CryptoCurrencyStatus> results = new ArrayList<>();
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -35,22 +33,22 @@ public class BackTest {
         StringBuilder result = new StringBuilder();
         for (Double percent: profitPercentRange) {
             for (Double buyPercent : buyPercentRange) {
-//                for (double stopLoss : stopLossRange) {
-//                    this.stopLossFactor = stopLoss;
-                    testConfig = getTestConfig(objectMapper);
-                    testConfig.setProfitPercent(percent);
-                    testConfig.setBuyPercent(buyPercent);
-                    CryptoCurrencyStatus resultStatus = runTest(cryptoHistPriceBySymbol, testConfig);
-                    if (resultStatus != null && resultStatus.getRegularSell() != 0) {
-                        result.append(percent).append(ReportGenerator.SEPARATOR);
-                        result.append(buyPercent).append(ReportGenerator.SEPARATOR);
-//                        result.append(stopLoss).append(ReportGenerator.SEPARATOR);
-                        ReportGenerator.getReportData(result, resultStatus);
-                        results.add(resultStatus);
-                    }
-//                }
+                testConfig = getTestConfig(objectMapper);
+                testConfig.setProfitPercent(percent);
+                testConfig.setBuyPercent(buyPercent);
+                CryptoCurrencyStatus resultStatus = runTest(cryptoHistPriceBySymbol, testConfig);
+                if (resultStatus != null && resultStatus.getRegularSell() != 0) {
+                    results.add(resultStatus);
+                }
             }
         }
+
+        results.stream().sorted(Comparator.comparingDouble(CryptoCurrencyStatus::getProfit).reversed()).limit(10).forEach(cryptoCurrencyStatus -> {
+            result.append(cryptoCurrencyStatus.getBuyPercent()).append(ReportGenerator.SEPARATOR);
+            result.append(cryptoCurrencyStatus.getProfitPercent()).append(ReportGenerator.SEPARATOR);
+            ReportGenerator.getReportData(result, cryptoCurrencyStatus);
+        });
+
         System.out.println(result.toString());
     }
 
@@ -85,9 +83,12 @@ public class BackTest {
         int i = 0;
         for (int j = 0; j < dataPoints.size() - 1; i++) {
             j = i + 6;
+            double highPrice = Double.parseDouble(dataPoints.subList(j < 288 ? 0 : i, j).stream().max(Comparator.comparingDouble(dataPoint -> Double.parseDouble(dataPoint.getHighPrice()))).get().getHighPrice());
+
+
             System.out.println("Testing for Starting time: " + dataPoints.get(j).toString());
             if (testConfig.isShouldBuy()) {
-                CryptoOrderResponse cryptoOrderResponse = actionService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), false);
+                CryptoOrderResponse cryptoOrderResponse = actionService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), highPrice, false);
                 if(cryptoOrderResponse != null) {
                     System.out.println("Buy Order Executed: " + cryptoOrderResponse.toString());
                     testConfig = controllerService.processFilledOrder(testConfig, getDummyCryptoOrderStatusResponse(cryptoOrderResponse), false);
@@ -95,19 +96,15 @@ public class BackTest {
             } else {
                 DataPoint currentDataPoint = dataPoints.get(j);
                 double targetPrice = MathUtil.getAmount(testConfig.getLastBuyPrice(), 100 + testConfig.getProfitPercent());
-                double targetStopLossPrice = MathUtil.getAmount(testConfig.getLastBuyPrice(), 100 - (testConfig.getProfitPercent() * this.stopLossFactor));
                 double highPriceOfCurrentDataPoint = MathUtil.getAmount(Double.parseDouble(currentDataPoint.getHighPrice()), 99.75);
                 double lowPriceOfCurrentDataPoint = MathUtil.getAmount(Double.parseDouble(currentDataPoint.getLowPrice()), 100.25);
 
-                boolean stoploss = highPriceOfCurrentDataPoint <= targetStopLossPrice;
                 boolean sell = lowPriceOfCurrentDataPoint < targetPrice && targetPrice < highPriceOfCurrentDataPoint;
-                if ( sell || stoploss) {
-                    double sellPrice = stoploss ? targetStopLossPrice : targetPrice;
-                    String msg = stoploss?  "Sell stop loss Order Executed: " : "Sell Order Executed: ";
-                    System.out.println(msg + currentDataPoint.toString() + " with targetPrice = " + sellPrice);
+                if ( sell) {
+                    System.out.println("Sell Order Executed: " + currentDataPoint.toString() + " with targetPrice = " + targetPrice);
 
                     CryptoOrderStatusResponse cryptoOrderStatusResponse = new CryptoOrderStatusResponse();
-                    cryptoOrderStatusResponse.setPrice(String.valueOf(sellPrice));
+                    cryptoOrderStatusResponse.setPrice(String.valueOf(targetPrice));
                     cryptoOrderStatusResponse.setSide("sell");
                     testConfig = controllerService.processFilledOrder(testConfig, cryptoOrderStatusResponse, false);
                 }

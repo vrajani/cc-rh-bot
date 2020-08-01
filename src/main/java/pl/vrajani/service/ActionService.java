@@ -7,6 +7,7 @@ import pl.vrajani.model.DataPoint;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.MathUtil;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,11 +24,16 @@ public class ActionService {
         double lastPrice = Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
 
         List<DataPoint> dataPoints = cryptoDayData.getDataPoints();
+        double highPrice = Double.parseDouble(dataPoints
+                .stream()
+                .max(Comparator.comparingDouble(dataPoint -> Double.parseDouble(dataPoint.getHighPrice())))
+                .get()
+                .getHighPrice());
         int duration = Integer.parseInt(System.getenv("duration"));
-        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, dataPoints.subList(dataPoints.size() - duration, dataPoints.size()), lastPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
+        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, dataPoints.subList(dataPoints.size() - duration, dataPoints.size()), lastPrice, highPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
     }
 
-    public CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, List<DataPoint> dataPoints, double lastPrice, boolean shouldExecute) {
+    public CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, List<DataPoint> dataPoints, double lastPrice, double highPrice, boolean shouldExecute) {
         double initialPrice = Double.parseDouble(dataPoints.get(0).getClosePrice());
         double tenMinAgoPrice = Double.parseDouble(dataPoints.get(dataPoints.size() - 2).getClosePrice());
         double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
@@ -40,7 +46,7 @@ public class ActionService {
                          + "\nBuy Percent: "+ buyPercent);
 
         double targetBuyPercent = 100 - cryptoCurrencyStatus.getBuyPercent();
-        if ((buyPercent < targetBuyPercent && tenMinPercent > 99.45)) {
+        if (buyPercent < targetBuyPercent && tenMinPercent > 99.45 && MathUtil.getPercentAmount(lastPrice, highPrice) < 99) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = cryptoCurrencyStatus.getBuyAmount() / lastPrice;
             return shouldExecute ? execute(cryptoCurrencyStatus, lastPrice, quantity) :

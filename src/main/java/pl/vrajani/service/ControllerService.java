@@ -77,7 +77,8 @@ public class ControllerService {
     }
 
     public boolean isConfigUpdated(String acquiredToken, boolean didUpdateCurrencyStatus, HashMap<String, String> pendingOrdersBySymbolBefore, String newToken) {
-        return didUpdateCurrencyStatus || updatedToken(acquiredToken, newToken) || !pendingOrdersBySymbolBefore.equals(pendingOrdersBySymbol);
+        boolean tokenUpdated = acquiredToken != null && !acquiredToken.equals(newToken);
+        return didUpdateCurrencyStatus || tokenUpdated || !pendingOrdersBySymbolBefore.equals(pendingOrdersBySymbol);
     }
 
     public String initAndAcquireToken(DataConfig dataConfig) {
@@ -132,6 +133,9 @@ public class ControllerService {
                 System.out.println("Selling as the order has been pending for long. symbol - " + ccId + " with limit price " + sellPrice);
                 apiService.cancelOrder(symbol, cryptoOrderStatusResponse.getCancelUrl());
                 setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
+            } else {
+                System.out.println("Skipping crypto as there is a pending order: " + ccId +
+                        " with order Id: " + previousOrderId + " at price: " + cryptoOrderStatusResponse.getPrice());
             }
         } else {
             System.out.println("Skipping crypto as there is a pending order: " + ccId +
@@ -175,10 +179,4 @@ public class ControllerService {
         System.out.println("Setting sell order:: " + currencyStatus.getCcId() + " with price: " + cryptoSellOrderResponse.getPrice());
         pendingOrdersBySymbol.put(currencyStatus.getCcId(), cryptoSellOrderResponse.getId());
     }
-
-    private boolean updatedToken(String acquiredToken, String token) {
-        return acquiredToken != null && !acquiredToken.equals(token);
-    }
-
-
 }
