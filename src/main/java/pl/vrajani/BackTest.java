@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class BackTest {
-
 
     public static void main(String[] args) throws IOException {
         new BackTest().execute();
@@ -43,13 +43,21 @@ public class BackTest {
             }
         }
 
-        results.stream().sorted(Comparator.comparingDouble(CryptoCurrencyStatus::getProfit).reversed()).limit(10).forEach(cryptoCurrencyStatus -> {
+        double totalBuyPercent = 0.0;
+        double totalProfitPercent = 0.0;
+        List<CryptoCurrencyStatus> limit = results.stream().sorted(Comparator.comparingDouble(CryptoCurrencyStatus::getProfit).reversed()).limit(20).collect(Collectors.toList());
+        for (CryptoCurrencyStatus cryptoCurrencyStatus : limit) {
             result.append(cryptoCurrencyStatus.getBuyPercent()).append(ReportGenerator.SEPARATOR);
             result.append(cryptoCurrencyStatus.getProfitPercent()).append(ReportGenerator.SEPARATOR);
             ReportGenerator.getReportData(result, cryptoCurrencyStatus);
-        });
+            totalBuyPercent += cryptoCurrencyStatus.getBuyPercent();
+            totalProfitPercent += cryptoCurrencyStatus.getProfitPercent();
+        }
 
         System.out.println(result.toString());
+
+        System.out.println("Buy Percent - " + (totalBuyPercent/20));
+        System.out.println("Sell Percent - " + (totalProfitPercent/20));
     }
 
     private List<Double> getProfitPercentRange() {

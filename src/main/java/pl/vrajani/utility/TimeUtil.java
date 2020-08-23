@@ -40,7 +40,7 @@ public class TimeUtil {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
         LocalDateTime localDateTime = LocalDateTime.parse(createdAt, formatter);
         LocalDateTime threeHrsAgo = LocalDateTime.now().minusMinutes(waitInMinutes); // now in UTC
-        System.out.println("four hours ago time: " + threeHrsAgo.format(formatter));
+        System.out.println("Set wait time ago: " + threeHrsAgo.format(formatter));
         return localDateTime.isBefore(threeHrsAgo);
     }
 }
