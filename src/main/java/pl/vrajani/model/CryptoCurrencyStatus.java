@@ -55,4 +55,7 @@ public class CryptoCurrencyStatus extends CryptoStatusBase {
         return waitInMinutes;
     }
 
+    public void setWaitInMinutes(int waitInMinutes) {
+        this.waitInMinutes = waitInMinutes;
+    }
 }

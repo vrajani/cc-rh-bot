@@ -1,39 +1,84 @@
 package pl.vrajani;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.time.StopWatch;
 import pl.vrajani.model.*;
+import pl.vrajani.request.APIService;
 import pl.vrajani.service.ActionService;
 import pl.vrajani.service.ControllerService;
 import pl.vrajani.utility.MathUtil;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class BackTest {
+    private static final List<String> CRYPTOS = Arrays.asList("LTC","BTC", "ETH", "BCH", "BSV");
+    public static final int TOP_K = 20;
+    private final APIService apiService;
 
-    public static void main(String[] args) throws IOException {
-        new BackTest().execute();
+    public static void main(String[] args) {
+        String token = System.getenv("token");
+        new BackTest(token).execute();
     }
 
-    private void execute() throws IOException {
-        List<Double> profitPercentRange = getProfitPercentRange();
-        List<Double> buyPercentRange = getProfitPercentRange();
+    public BackTest(String token){
+        this.apiService = Application.getApiService(token);
+    }
+
+    private void execute() {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        Map<String, List<CryptoCurrencyStatus>> statusByCrypto = CRYPTOS.stream().collect(Collectors.toMap(Function.identity(), crypto -> {
+            try {
+                return processCrypto(crypto);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }));
+        stopWatch.stop();
+        statusByCrypto.keySet().forEach(crypto -> printResults(statusByCrypto.get(crypto)));
+        System.out.println("Time taken - " + stopWatch.getTime());
+    }
+
+    private void printResults(List<CryptoCurrencyStatus> cryptoCurrencyStatuses) {
+        System.out.println("################################################################################################");
+        StringBuilder result = new StringBuilder();
+        double totalBuyPercent = 0.0;
+        double totalProfitPercent = 0.0;
+        double totalGain = 0.0;
+        for (CryptoCurrencyStatus cryptoCurrencyStatus : cryptoCurrencyStatuses) {
+            result.append(cryptoCurrencyStatus.getBuyPercent()).append(ReportGenerator.SEPARATOR);
+            result.append(cryptoCurrencyStatus.getProfitPercent()).append(ReportGenerator.SEPARATOR);
+            ReportGenerator.getReportData(result, cryptoCurrencyStatus);
+            totalBuyPercent += cryptoCurrencyStatus.getBuyPercent();
+            totalProfitPercent += cryptoCurrencyStatus.getProfitPercent();
+            totalGain += cryptoCurrencyStatus.getProfit();
+        }
+        double medianProfitPercent = cryptoCurrencyStatuses.stream().map(CryptoStatusBase::getProfitPercent).sorted().collect(Collectors.toList()).get(TOP_K / 2);
+        double medianBuyPercent = cryptoCurrencyStatuses.stream().map(CryptoStatusBase::getBuyPercent).sorted().collect(Collectors.toList()).get(TOP_K / 2);
+
+
+        System.out.println(result.toString());
+
+        System.out.println("Avg Buy Percent - " + (totalBuyPercent/ TOP_K));
+        System.out.println("Avg Sell Percent - " + (totalProfitPercent/ TOP_K));
+        System.out.println("Avg Gain - " + (totalGain/ TOP_K));
+        System.out.println("Median sell percent - " + MathUtil.roundDecimal(medianProfitPercent, "0.00"));
+        System.out.println("Median buy percent - " + MathUtil.roundDecimal(medianBuyPercent, "0.00"));
+    }
+
+    public List<CryptoCurrencyStatus> processCrypto(String crypto) throws InterruptedException {
+        List<Double> profitPercentRange = getPercentRange();
+        List<Double> buyPercentRange = getPercentRange();
         List<CryptoCurrencyStatus> results = new ArrayList<>();
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        String token = System.getenv("token");
-        CryptoCurrencyStatus testConfig = getTestConfig(objectMapper);
-        String symbol = testConfig.getSymbol();
-        CryptoHistPrice cryptoHistPriceBySymbol = Application.getApiService(token).getCryptoHistPriceBySymbol(symbol, "week", "5minute");
+        CryptoCurrencyStatus testConfig;
+        CryptoHistPrice cryptoHistPriceBySymbol = apiService.getCryptoHistPriceBySymbol(crypto, "week", "5minute");
 
-        StringBuilder result = new StringBuilder();
         for (Double percent: profitPercentRange) {
             for (Double buyPercent : buyPercentRange) {
-                testConfig = getTestConfig(objectMapper);
+                testConfig = getTestConfig(crypto);
                 testConfig.setProfitPercent(percent);
                 testConfig.setBuyPercent(buyPercent);
                 CryptoCurrencyStatus resultStatus = runTest(cryptoHistPriceBySymbol, testConfig);
@@ -42,49 +87,20 @@ public class BackTest {
                 }
             }
         }
-
-        double totalBuyPercent = 0.0;
-        double totalProfitPercent = 0.0;
-        List<CryptoCurrencyStatus> limit = results.stream().sorted(Comparator.comparingDouble(CryptoCurrencyStatus::getProfit).reversed()).limit(20).collect(Collectors.toList());
-        for (CryptoCurrencyStatus cryptoCurrencyStatus : limit) {
-            result.append(cryptoCurrencyStatus.getBuyPercent()).append(ReportGenerator.SEPARATOR);
-            result.append(cryptoCurrencyStatus.getProfitPercent()).append(ReportGenerator.SEPARATOR);
-            ReportGenerator.getReportData(result, cryptoCurrencyStatus);
-            totalBuyPercent += cryptoCurrencyStatus.getBuyPercent();
-            totalProfitPercent += cryptoCurrencyStatus.getProfitPercent();
-        }
-
-        System.out.println(result.toString());
-
-        System.out.println("Buy Percent - " + (totalBuyPercent/20));
-        System.out.println("Sell Percent - " + (totalProfitPercent/20));
+        return results.stream().sorted(Comparator.comparingDouble(CryptoCurrencyStatus::getProfit).reversed()).limit(TOP_K).collect(Collectors.toList());
     }
 
-    private List<Double> getProfitPercentRange() {
+    private List<Double> getPercentRange() {
         List<Double> profitPercent = new ArrayList<>();
         double currentPercent = 0.2;
-        while(currentPercent <= 1.0) {
+        while(currentPercent <= 1.5) {
             profitPercent.add(currentPercent);
             currentPercent += 0.05;
-        }
-        while(currentPercent < 9.0) {
-            profitPercent.add(currentPercent);
-            currentPercent += 0.5;
         }
         return profitPercent;
     }
 
-    private List<Double> getStopLossRange() {
-        List<Double> stopLossRange = new ArrayList<>();
-        double currentPercent = 2.5;
-        while(currentPercent <= 7.0) {
-            stopLossRange.add(currentPercent);
-            currentPercent += 0.5;
-        }
-        return stopLossRange;
-    }
-
-    private CryptoCurrencyStatus runTest(CryptoHistPrice cryptoHistPriceBySymbol, CryptoCurrencyStatus testConfig) {
+    private CryptoCurrencyStatus runTest(CryptoHistPrice cryptoHistPriceBySymbol, CryptoCurrencyStatus testConfig) throws InterruptedException {
         ActionService actionService = new ActionService(null);
         ControllerService  controllerService = new ControllerService(null);
         List<DataPoint> dataPoints = cryptoHistPriceBySymbol.getDataPoints();
@@ -92,9 +108,6 @@ public class BackTest {
         for (int j = 0; j < dataPoints.size() - 1; i++) {
             j = i + 6;
             double highPrice = Double.parseDouble(dataPoints.subList(j < 288 ? 0 : i, j).stream().max(Comparator.comparingDouble(dataPoint -> Double.parseDouble(dataPoint.getHighPrice()))).get().getHighPrice());
-
-
-            System.out.println("Testing for Starting time: " + dataPoints.get(j).toString());
             if (testConfig.isShouldBuy()) {
                 CryptoOrderResponse cryptoOrderResponse = actionService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), highPrice, false);
                 if(cryptoOrderResponse != null) {
@@ -131,13 +144,29 @@ public class BackTest {
         return cryptoOrderStatusResponse;
     }
 
-    private CryptoCurrencyStatus getTestConfig(ObjectMapper objectMapper) throws IOException {
-        try {
-            return objectMapper.readValue(new File("src/main/resources/backtest/test.json"),
-                    CryptoCurrencyStatus.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
-        }
+    private CryptoCurrencyStatus getTestConfig(String symbol) {
+        CryptoCurrencyStatus status = new CryptoCurrencyStatus();
+        status.setSymbol(symbol);
+        status.setCcId(symbol);
+        status.setRegularSell(0);
+        status.setQuantity(0);
+        status.setProfit(0);
+        status.setLastBuyPrice(0);
+        status.setProfitPercent(0.5);
+        status.setBuyPercent(0.5);
+        status.setShouldBuy(true);
+        status.setBuyAmount(100);
+        status.setWaitInMinutes(500);
+        return status;
+    }
+
+    public static CryptoOrderResponse getDummyCryptoOrderResponse(double lastPrice, double quantity) {
+        CryptoOrderResponse dummyResponse = new CryptoOrderResponse();
+        dummyResponse.setSide("buy");
+        dummyResponse.setPrice(String.valueOf(lastPrice));
+        dummyResponse.setQuantity(String.valueOf(quantity));
+        dummyResponse.setState("filled");
+        dummyResponse.setId("DUMMY_RESPONSE_ID");
+        return dummyResponse;
     }
 }

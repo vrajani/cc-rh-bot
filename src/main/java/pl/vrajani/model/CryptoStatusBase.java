@@ -62,4 +62,15 @@ public class CryptoStatusBase {
         return ccId;
     }
 
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public void setCcId(String ccId) {
+        this.ccId = ccId;
+    }
+
+    public void setBuyAmount(double buyAmount) {
+        this.buyAmount = buyAmount;
+    }
 }

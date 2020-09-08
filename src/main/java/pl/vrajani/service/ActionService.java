@@ -1,5 +1,6 @@
 package pl.vrajani.service;
 
+import pl.vrajani.BackTest;
 import pl.vrajani.model.CryptoCurrencyStatus;
 import pl.vrajani.model.CryptoHistPrice;
 import pl.vrajani.model.CryptoOrderResponse;
@@ -24,13 +25,14 @@ public class ActionService {
         double lastPrice = Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
 
         List<DataPoint> dataPoints = cryptoDayData.getDataPoints();
-        double highPrice = Double.parseDouble(dataPoints
+        int duration = Integer.parseInt(System.getenv("duration"));
+        final List<DataPoint> subDataPoints = dataPoints.subList(dataPoints.size() - duration, dataPoints.size());
+        double highPrice = Double.parseDouble(subDataPoints
                 .stream()
                 .max(Comparator.comparingDouble(dataPoint -> Double.parseDouble(dataPoint.getHighPrice())))
                 .get()
                 .getHighPrice());
-        int duration = Integer.parseInt(System.getenv("duration"));
-        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, dataPoints.subList(dataPoints.size() - duration, dataPoints.size()), lastPrice, highPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
+        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, subDataPoints, lastPrice, highPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
     }
 
     public CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, List<DataPoint> dataPoints, double lastPrice, double highPrice, boolean shouldExecute) {
@@ -46,27 +48,17 @@ public class ActionService {
                          + "\nBuy Percent: "+ buyPercent);
 
         double targetBuyPercent = 100 - cryptoCurrencyStatus.getBuyPercent();
-        if (buyPercent < targetBuyPercent && tenMinPercent > 99.45 &&
-                MathUtil.getPercentAmount(lastPrice, highPrice) < 100 - (cryptoCurrencyStatus.getBuyPercent() * 1.5)) {
+        if (buyPercent < targetBuyPercent && tenMinPercent > 99.55 &&
+                MathUtil.getPercentAmount(lastPrice, highPrice) < 100 - (cryptoCurrencyStatus.getProfitPercent() * 1.5)) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = cryptoCurrencyStatus.getBuyAmount() / lastPrice;
             return shouldExecute ? execute(cryptoCurrencyStatus, lastPrice, quantity) :
-                    getDummyCryptoOrderResponse(lastPrice, quantity);
+                    BackTest.getDummyCryptoOrderResponse(lastPrice, quantity);
         }
         return null;
     }
 
     private CryptoOrderResponse execute(CryptoCurrencyStatus cryptoCurrencyStatus, double lastPrice, double quantity) {
         return apiService.buyCrypto(cryptoCurrencyStatus.getSymbol(), String.valueOf(quantity), String.valueOf(lastPrice));
-    }
-
-    public static CryptoOrderResponse getDummyCryptoOrderResponse(double lastPrice, double quantity) {
-        CryptoOrderResponse dummyResponse = new CryptoOrderResponse();
-        dummyResponse.setSide("buy");
-        dummyResponse.setPrice(String.valueOf(lastPrice));
-        dummyResponse.setQuantity(String.valueOf(quantity));
-        dummyResponse.setState("filled");
-        dummyResponse.setId("DUMMY_RESPONSE_ID");
-        return dummyResponse;
     }
 }

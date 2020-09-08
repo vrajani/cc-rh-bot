@@ -1,5 +1,7 @@
 package pl.vrajani.utility;
 
+import java.text.DecimalFormat;
+
 public class MathUtil {
 
     public static double getPercentAmount(double source, Double out) {
@@ -10,4 +12,8 @@ public class MathUtil {
         return (source * percent)/ 100;
     }
 
+    public static String roundDecimal(double price, String pattern) {
+        DecimalFormat df = new DecimalFormat(pattern);
+        return df.format(price);
+    }
 }
