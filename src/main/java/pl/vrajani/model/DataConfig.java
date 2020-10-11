@@ -3,7 +3,6 @@ package pl.vrajani.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.List;
 
@@ -54,11 +53,11 @@ public class DataConfig {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this)
-                .append("token", token)
-                .append("pendingOrders", pendingOrders.toString())
-                .append("cryptoCurrencyStatuses", cryptoCurrencyStatuses.toString())
-                .toString();
+        return "DataConfig{" +
+                "token='" + token + '\'' +
+                ", pendingOrders=" + pendingOrders +
+                ", cryptoCurrencyStatuses=" + cryptoCurrencyStatuses.toString() +
+                '}';
     }
 
     public void addPendingOrder(String symbol, String orderId) {
