@@ -29,15 +29,11 @@ public class ControllerService {
         this.updatedStatus = new ArrayList<>();
     }
 
-    private boolean shouldProcess() {
-        return !TimeUtil.isDownTime() && !TimeUtil.isBadTimeOfTheWeek();
-    }
-
     public void checkAllCrypto() throws IOException {
         System.out.println("Initiating the check::::");
 
-        if(shouldProcess()) {
-            DataConfig dataConfig = daoService.getDataConfig();
+        if(!TimeUtil.isDownTime()) {
+            DataConfig dataConfig = daoService.getMainConfig();
             String acquiredToken = initAndAcquireToken(dataConfig);
             boolean didUpdateCurrencyStatus = false;
             HashMap<String, String> pendingOrdersBySymbolBefore = new HashMap<>(pendingOrdersBySymbol);
@@ -69,7 +65,7 @@ public class ControllerService {
                 this.pendingOrdersBySymbol.keySet()
                         .forEach(ccId -> dataConfig.addPendingOrder(ccId, this.pendingOrdersBySymbol.get(ccId)));
                 dataConfig.setToken(acquiredToken);
-                daoService.updateConfig(dataConfig);
+                daoService.updateMainConfig(dataConfig);
             }
         } else {
             System.out.println("It is DownTime. Waiting...");
@@ -130,11 +126,12 @@ public class ControllerService {
                 double percent = 100.0 + (currencyStatus.getProfitPercent() / 3);
                 double sellPrice = MathUtil.getAmount(currencyStatus.getLastBuyPrice(), percent);
                 System.out.println("Resetting the sell order with lesser profit. symbol - " + ccId + " with limit price " + sellPrice);
-                pendingOrdersBySymbol.remove(ccId);
                 setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
-            } else {
-                pendingOrdersBySymbol.remove(ccId);
+            } else if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
+                    isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus)) {
+                // TODO : Add the cancelled order into the Queue as this is stop loss.
             }
+            pendingOrdersBySymbol.remove(ccId);
         } else if (TimeUtil.isPendingOrderForLong(cryptoOrderStatusResponse.getCreatedAt(), currencyStatus.getWaitInMinutes())) {
             if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy") ||
                     !isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus) ||

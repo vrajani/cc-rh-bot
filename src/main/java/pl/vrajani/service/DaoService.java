@@ -7,83 +7,61 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import pl.vrajani.model.DataConfig;
+import pl.vrajani.model.StopLossConfigBase;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class DaoService {
+    private final static String AWS_BUCKET = "cc-rh-config";
+    private final static String CONFIG_FILE = "config.json";
+    private final static String STOP_LOSS_CONFIG_FILE = "stop-loss-config.json";
+    private final static String TRANSACTION_REPORT_FILE = "transaction-report.txt";
     private final ObjectMapper objectMapper;
     private final AmazonS3 s3client;
 
-    public DaoService(ObjectMapper objectMapper){
-        this.objectMapper = objectMapper;
+    public DaoService(){
+        this.objectMapper = new ObjectMapper();
         this.s3client = AmazonS3ClientBuilder
                 .defaultClient();
     }
 
-    public DataConfig getDataConfig() throws IOException {
-        if(isOnCloud()){
-            S3Object object = s3client.getObject("cc-rh-config", "config.json");
-            S3ObjectInputStream is = object.getObjectContent();
-            return objectMapper.readValue(is, DataConfig.class);
-        }
-        return refresh();
+    public DataConfig getMainConfig() throws IOException {
+        return objectMapper.readValue(getS3ObjectInputStream(CONFIG_FILE), DataConfig.class);
     }
 
-    private boolean isOnCloud() {
-        String isAWS = System.getenv("isAWS");
-        return isAWS != null && isAWS.equalsIgnoreCase("true");
+    public void updateMainConfig(DataConfig dataConfig) throws JsonProcessingException {
+        updateS3Config(CONFIG_FILE, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataConfig));
     }
 
-    public void updateConfig(DataConfig dataConfig) throws JsonProcessingException {
-        if(isOnCloud()){
-            s3client.putObject("cc-rh-config", "config.json",
-                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataConfig));
-        } else {
-            saveStatus(dataConfig);
-        }
+    public StopLossConfigBase getStopLossConfig() throws IOException {
+        return objectMapper.readValue(getS3ObjectInputStream(STOP_LOSS_CONFIG_FILE), StopLossConfigBase.class);
     }
 
-    private void saveStatus(DataConfig dataConfig){
-        //Finally save the new state, for just in case.
-        try {
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File("src/main/resources/status/config.json"), dataConfig);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private DataConfig refresh(){
-        try {
-            return objectMapper.readValue(new File("src/main/resources/status/config.json"),
-                    DataConfig.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+    public void updateStoplossConfig(StopLossConfigBase stopLossConfigBase) throws JsonProcessingException {
+        updateS3Config(STOP_LOSS_CONFIG_FILE, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(stopLossConfigBase));
     }
 
     public void registerTransactionReport(String transactionReports) throws IOException {
-        if(isOnCloud()) {
-            S3Object historicalReports = s3client.getObject("cc-rh-config", "transaction-report.txt");
-            S3ObjectInputStream s3objectResponse = historicalReports.getObjectContent();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(s3objectResponse));
-            StringBuilder sb = new StringBuilder();
-            String line = "";
-            while ((line = reader.readLine()) != null) {
-                if(!line.isEmpty()) {
-                    sb.append(line).append(System.lineSeparator());
-                }
+        BufferedReader reader = new BufferedReader(new InputStreamReader(getS3ObjectInputStream(TRANSACTION_REPORT_FILE)));
+        StringBuilder sb = new StringBuilder();
+        String line = "";
+        while ((line = reader.readLine()) != null) {
+            if(!line.isEmpty()) {
+                sb.append(line).append(System.lineSeparator());
             }
-
-            s3client.putObject("cc-rh-config", "transaction-report.txt", sb.append(transactionReports).toString());
-        } else {
-            FileWriter writer = new FileWriter(new File("src/main/resources/transaction-report.txt"), true);
-            writer.write(transactionReports);
         }
+
+        updateS3Config(TRANSACTION_REPORT_FILE, sb.append(transactionReports).toString());
+    }
+
+    private S3ObjectInputStream getS3ObjectInputStream(String configFile) {
+        S3Object object = s3client.getObject(AWS_BUCKET, configFile);
+        return object.getObjectContent();
+    }
+
+    private void updateS3Config(String stopLossConfigFile, String s) {
+        s3client.putObject(AWS_BUCKET, stopLossConfigFile, s);
     }
 }

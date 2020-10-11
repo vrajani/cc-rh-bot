@@ -44,11 +44,11 @@ public class ActionService {
         System.out.println("Current Value: " + lastPrice
                          + "\n10 Min ago Value: " + tenMinAgoPrice
                          + "\n10 Min Percent: "+ tenMinPercent
-                         + "\n30 Min ago Value: " + initialPrice
+                         + "\n" + (dataPoints.size() * 5) + "Min ago Value: " + initialPrice
                          + "\nBuy Percent: "+ buyPercent);
 
         double targetBuyPercent = 100 - cryptoCurrencyStatus.getBuyPercent();
-        if (buyPercent < targetBuyPercent && tenMinPercent > 99.55 &&
+        if (buyPercent < targetBuyPercent && tenMinPercent > 99.75 &&
                 MathUtil.getPercentAmount(lastPrice, highPrice) < 100 - (cryptoCurrencyStatus.getProfitPercent() * 1.5)) {
             System.out.println("Buying Low Range: "+ cryptoCurrencyStatus.getSymbol() + " with price: "+ lastPrice);
             double quantity = cryptoCurrencyStatus.getBuyAmount() / lastPrice;

@@ -34,7 +34,7 @@ public class BackTest {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return null;
+            return new ArrayList<>();
         }));
         stopWatch.stop();
         statusByCrypto.keySet().forEach(crypto -> printResults(statusByCrypto.get(crypto)));

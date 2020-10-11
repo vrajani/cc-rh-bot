@@ -2,7 +2,6 @@ package pl.vrajani.utility;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
@@ -20,19 +19,7 @@ public class TimeUtil {
 
     public static String getCurrentTime(){
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        Date date = new Date();
-        return dateFormat.format(date);
-    }
-
-    public static boolean isBadTimeOfTheWeek() {
-        String noWeekends = System.getenv("noWeekends");
-        if(noWeekends.equalsIgnoreCase("true") ) {
-            Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-            int dayOfWeek = utc.get(Calendar.DAY_OF_WEEK);
-            int currentHour = utc.get(Calendar.HOUR_OF_DAY);
-            return (dayOfWeek == 1 && currentHour > 10) || (dayOfWeek == 2 && currentHour < 18);
-        }
-        return false;
+        return dateFormat.format( new Date());
     }
 
     public static boolean isPendingOrderForLong(String createdAt, int waitInMinutes) {

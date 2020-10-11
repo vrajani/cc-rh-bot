@@ -2,7 +2,6 @@ package pl.vrajani;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import pl.vrajani.request.APIService;
 import pl.vrajani.service.ControllerService;
 import pl.vrajani.service.DaoService;
@@ -14,10 +13,7 @@ public class Application implements RequestHandler<Object, String> {
 
     @Override
     public String handleRequest(Object input, Context context) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        DaoService daoService = new DaoService(objectMapper);
-
-        ControllerService controllerService = new ControllerService(daoService);
+        ControllerService controllerService = new ControllerService(new DaoService());
         try {
             controllerService.checkAllCrypto();
         } catch (IOException e) {
