@@ -1,6 +1,5 @@
 package pl.vrajani;
 
-import org.apache.commons.lang3.time.StopWatch;
 import pl.vrajani.model.*;
 import pl.vrajani.request.APIService;
 import pl.vrajani.service.ActionService;
@@ -26,8 +25,7 @@ public class BackTest {
     }
 
     private void execute() {
-        StopWatch stopWatch = new StopWatch();
-        stopWatch.start();
+        long startTime = System.currentTimeMillis();
         Map<String, List<CryptoCurrencyStatus>> statusByCrypto = CRYPTOS.stream().collect(Collectors.toMap(Function.identity(), crypto -> {
             try {
                 return processCrypto(crypto);
@@ -36,36 +34,24 @@ public class BackTest {
             }
             return new ArrayList<>();
         }));
-        stopWatch.stop();
         statusByCrypto.keySet().forEach(crypto -> printResults(statusByCrypto.get(crypto)));
-        System.out.println("Time taken - " + stopWatch.getTime());
+        System.out.println("Time taken - " + ((System.currentTimeMillis() - startTime))/1000);
     }
 
     private void printResults(List<CryptoCurrencyStatus> cryptoCurrencyStatuses) {
         System.out.println("################################################################################################");
         StringBuilder result = new StringBuilder();
-        double totalBuyPercent = 0.0;
-        double totalProfitPercent = 0.0;
-        double totalGain = 0.0;
         for (CryptoCurrencyStatus cryptoCurrencyStatus : cryptoCurrencyStatuses) {
             result.append(cryptoCurrencyStatus.getBuyPercent()).append(ReportGenerator.SEPARATOR);
             result.append(cryptoCurrencyStatus.getProfitPercent()).append(ReportGenerator.SEPARATOR);
             ReportGenerator.getReportData(result, cryptoCurrencyStatus);
-            totalBuyPercent += cryptoCurrencyStatus.getBuyPercent();
-            totalProfitPercent += cryptoCurrencyStatus.getProfitPercent();
-            totalGain += cryptoCurrencyStatus.getProfit();
         }
-        double medianProfitPercent = cryptoCurrencyStatuses.stream().map(CryptoStatusBase::getProfitPercent).sorted().collect(Collectors.toList()).get(TOP_K / 2);
-        double medianBuyPercent = cryptoCurrencyStatuses.stream().map(CryptoStatusBase::getBuyPercent).sorted().collect(Collectors.toList()).get(TOP_K / 2);
+        double medianProfitPercent = MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getProfitPercent);
+        double medianBuyPercent = MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getBuyPercent);
 
-
+        result.append("\nMedian sell percent - ").append(medianProfitPercent)
+            .append("\nMedian buy percent - ").append(medianBuyPercent);
         System.out.println(result.toString());
-
-        System.out.println("Avg Buy Percent - " + (totalBuyPercent/ TOP_K));
-        System.out.println("Avg Sell Percent - " + (totalProfitPercent/ TOP_K));
-        System.out.println("Avg Gain - " + (totalGain/ TOP_K));
-        System.out.println("Median sell percent - " + MathUtil.roundDecimal(medianProfitPercent, "0.00"));
-        System.out.println("Median buy percent - " + MathUtil.roundDecimal(medianBuyPercent, "0.00"));
     }
 
     public List<CryptoCurrencyStatus> processCrypto(String crypto) throws InterruptedException {

@@ -26,17 +26,15 @@ public class ReportGenerator implements RequestHandler<Object, String> {
                 .forEach(cryptoCurrencyStatus -> {
                     if(cryptoCurrencyStatus.getRegularSell() != 0) {
                         getReportData(stringBuilder, cryptoCurrencyStatus);
-                        updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
-                    } else {
-                        updatedStatuses.add(cryptoCurrencyStatus);
                     }
+                    updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
                 });
 
-            if(!updatedStatuses.isEmpty()) {
+            if(stringBuilder.length() > 0) {
                 daoService.registerTransactionReport(stringBuilder.toString());
+                dataConfig.setCryptoCurrencyStatuses(updatedStatuses);
+                daoService.updateMainConfig(dataConfig);
             }
-            dataConfig.setCryptoCurrencyStatuses(updatedStatuses);
-            daoService.updateMainConfig(dataConfig);
         } catch (IOException e) {
             e.printStackTrace();
         }
