@@ -3,16 +3,16 @@ package pl.vrajani.model;
 import java.util.Optional;
 
 public class StopLossConfig {
-    private Optional<String> tranId;
+    private String tranId;
     private String symbol;
     private double quantity;
-    private double lastBuyPrice;
+    private double buyPrice;
 
-    public Optional<String> getTranId() {
+    public String getTranId() {
         return tranId;
     }
 
-    public void setTranId(Optional<String> tranId) {
+    public void setTranId(String tranId) {
         this.tranId = tranId;
     }
 
@@ -32,12 +32,12 @@ public class StopLossConfig {
         this.quantity = quantity;
     }
 
-    public double getLastBuyPrice() {
-        return lastBuyPrice;
+    public double getBuyPrice() {
+        return buyPrice;
     }
 
-    public void setLastBuyPrice(double lastBuyPrice) {
-        this.lastBuyPrice = lastBuyPrice;
+    public void setBuyPrice(double lastBuyPrice) {
+        this.buyPrice = lastBuyPrice;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class StopLossConfig {
                 "tranId=" + tranId +
                 ", symbol='" + symbol + '\'' +
                 ", quantity=" + quantity +
-                ", lastBuyPrice=" + lastBuyPrice +
+                ", lastBuyPrice=" + buyPrice +
                 '}';
     }
 }

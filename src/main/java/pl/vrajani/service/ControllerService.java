@@ -1,10 +1,7 @@
 package pl.vrajani.service;
 
 import pl.vrajani.Application;
-import pl.vrajani.model.CryptoCurrencyStatus;
-import pl.vrajani.model.CryptoOrderResponse;
-import pl.vrajani.model.CryptoOrderStatusResponse;
-import pl.vrajani.model.DataConfig;
+import pl.vrajani.model.*;
 import pl.vrajani.request.APIService;
 import pl.vrajani.utility.MathUtil;
 import pl.vrajani.utility.TimeUtil;
@@ -105,21 +102,21 @@ public class ControllerService {
                     Optional<String> orderId = Optional.ofNullable(actionService.executeBuyIfPriceDown(currencyStatus));
                     orderId.ifPresent(s -> pendingOrdersBySymbol.put(ccId, s));
             }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
         return Optional.empty();
     }
 
-    private Optional<CryptoCurrencyStatus> processPendingOrder(CryptoCurrencyStatus currencyStatus) throws InterruptedException {
+    private Optional<CryptoCurrencyStatus> processPendingOrder(CryptoCurrencyStatus currencyStatus) throws InterruptedException, IOException {
         String symbol = currencyStatus.getSymbol();
         String ccId = currencyStatus.getCcId();
         String previousOrderId = pendingOrdersBySymbol.get(ccId);
         CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
-        if ("filled".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+        if (CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.FILLED)) {
             return Optional.of(processFilledOrder(currencyStatus, cryptoOrderStatusResponse, true));
-        } else if("Canceled".equalsIgnoreCase(cryptoOrderStatusResponse.getState()) ||
-                "Rejected".equalsIgnoreCase(cryptoOrderStatusResponse.getState())) {
+        } else if(CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.CANCELED) ||
+                CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.REJECTED)) {
             System.out.println("The order was cancelled: " + ccId + " with order Id: " + previousOrderId);
             if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
                     !isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus)) {
@@ -129,7 +126,14 @@ public class ControllerService {
                 setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
             } else if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
                     isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus)) {
-                // TODO : Add the cancelled order into the Queue as this is stop loss.
+                StopLossConfigBase stopLossConfigBase = daoService.getStopLossConfig();
+                StopLossConfig stopLossConfig = new StopLossConfig();
+                stopLossConfig.setTranId("");
+                stopLossConfig.setSymbol(symbol.toUpperCase());
+                stopLossConfig.setQuantity(Double.parseDouble(cryptoOrderStatusResponse.getQuantity()));
+                stopLossConfig.setBuyPrice(Double.parseDouble(cryptoOrderStatusResponse.getPrice()));
+                stopLossConfigBase.getStopLossConfigs().add(stopLossConfig);
+                daoService.updateStoplossConfig(stopLossConfigBase);
             }
             pendingOrdersBySymbol.remove(ccId);
         } else if (TimeUtil.isPendingOrderForLong(cryptoOrderStatusResponse.getCreatedAt(), currencyStatus.getWaitInMinutes())) {
