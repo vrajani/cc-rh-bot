@@ -113,10 +113,10 @@ public class ControllerService {
         String ccId = currencyStatus.getCcId();
         String previousOrderId = pendingOrdersBySymbol.get(ccId);
         CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(previousOrderId);
-        if (CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.FILLED)) {
+        if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.FILLED)) {
             return Optional.of(processFilledOrder(currencyStatus, cryptoOrderStatusResponse, true));
-        } else if(CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.CANCELED) ||
-                CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.REJECTED)) {
+        } else if(OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED) ||
+                OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.REJECTED)) {
             System.out.println("The order was cancelled: " + ccId + " with order Id: " + previousOrderId);
             if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
                     !isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus)) {

@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ResetStrategy implements RequestHandler<Object, String> {
@@ -48,7 +47,7 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                     if(pendingOrder.isPresent()){
                         System.out.println("Pending order - "+ symbol + " at buy price - " + pendingOrder.get().getBuyPrice());
                         CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(pendingOrder.get().getTranId());
-                        if(CryptoOrderState.getState(cryptoOrderStatusResponse.getState()).equals(CryptoOrderState.FILLED)) {
+                        if(OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.FILLED)) {
                             updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, pendingOrder, apiService));
                         } else {
                             updatedConfigs.addAll(stopLossConfigs);
