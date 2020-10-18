@@ -9,60 +9,78 @@ import pl.vrajani.service.DaoService;
 import pl.vrajani.utility.MathUtil;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ResetStrategy implements RequestHandler<Object, String> {
+    private DaoService daoService;
     @Override
     public String handleRequest(Object o, Context context) {
-        DaoService daoService = new DaoService();
+        this.daoService = new DaoService();
         try {
-            DataConfig mainDataConfig = daoService.getMainConfig();
             // handle stop loss Order
-            handleStopLossOrders(daoService, mainDataConfig.getToken());
+            handleStopLossOrders();
 
             // run back test and update strategy
-            runBackTest(daoService, mainDataConfig);
+            runBackTest();
         } catch (Exception exception){
             exception.printStackTrace();
         }
         return "Completed";
     }
 
-    private void handleStopLossOrders(DaoService daoService, String token) throws IOException {
+    private void handleStopLossOrders() throws Exception {
         System.out.println("Handling Stop Loss Orders -- ");
+        DataConfig mainDataConfig = daoService.getMainConfig();
+
         StopLossConfigBase stopLossConfigBase = daoService.getStopLossConfig();
-        APIService apiService = Application.getApiService(token);
+        APIService apiService = Application.getApiService(mainDataConfig.getToken());
         List<StopLossConfig> updatedConfigs = new ArrayList<>();
 
-        stopLossConfigBase.getStopLossConfigs().stream()
-                .collect(Collectors.groupingBy(StopLossConfig::getSymbol))
-                .forEach((symbol, stopLossConfigs) -> {
-                    Optional<StopLossConfig> pendingOrder = stopLossConfigs.stream().filter(stopLossConfig -> !stopLossConfig.getTranId().isEmpty())
-                            .findFirst();
+        for (Map.Entry<String, List<StopLossConfig>> entry : stopLossConfigBase.getStopLossConfigs().stream()
+                .collect(Collectors.groupingBy(StopLossConfig::getSymbol)).entrySet()) {
+            String symbol = entry.getKey();
+            List<StopLossConfig> stopLossConfigs = entry.getValue();
+            Optional<StopLossConfig> pendingOrder = stopLossConfigs.stream().filter(stopLossConfig -> !stopLossConfig.getTranId().isEmpty())
+                    .findFirst();
 
-                    if(pendingOrder.isPresent()){
-                        System.out.println("Pending order - "+ symbol + " at buy price - " + pendingOrder.get().getBuyPrice());
-                        CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(pendingOrder.get().getTranId());
-                        if(OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.FILLED)) {
-                            updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, pendingOrder, apiService));
-                        } else {
-                            updatedConfigs.addAll(stopLossConfigs);
-                        }
-                    } else {
-                        System.out.println("No pending order - "+ symbol);
-                        updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, pendingOrder, apiService));
-                    }
-                });
+            if (pendingOrder.isPresent()) {
+                System.out.println("Pending order - " + symbol + " at buy price - " + pendingOrder.get().getBuyPrice());
+                CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(pendingOrder.get().getTranId());
+                if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.FILLED)) {
+                    stopLossConfigs.remove(pendingOrder.get());
+                    updateMainConfig(mainDataConfig, cryptoOrderStatusResponse.getPrice(), pendingOrder.get());
+                    updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
+                } else if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED)) {
+                    System.out.println("Pending order is cancelled. Rechecking to find the next best order to sell! - " + symbol);
+                    pendingOrder.get().setTranId("");
+                    updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
+                } else {
+                    updatedConfigs.addAll(stopLossConfigs);
+                }
+            } else {
+                System.out.println("No pending order - " + symbol);
+                updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
+            }
+        }
         stopLossConfigBase.setStopLossConfigs(updatedConfigs);
         daoService.updateStoplossConfig(stopLossConfigBase);
     }
 
-    private List<StopLossConfig> setAnotherOrder(List<StopLossConfig> stopLossConfigs, Optional<StopLossConfig> filledOrder, APIService apiService) {
-        filledOrder.ifPresent(stopLossConfigs::remove);
+    private void updateMainConfig(DataConfig mainDataConfig, String sellPrice, StopLossConfig stopLossConfig) throws JsonProcessingException {
+        Optional<CryptoCurrencyStatus> status = mainDataConfig.getCryptoCurrencyStatuses()
+                .stream()
+                .filter(cryptoCurrencyStatus -> cryptoCurrencyStatus.getSymbol().equalsIgnoreCase(stopLossConfig.getSymbol()))
+                .findFirst();
+        status.ifPresent(cryptoCurrencyStatus -> {
+            cryptoCurrencyStatus.addProfit((Double.parseDouble(sellPrice)
+                    - stopLossConfig.getBuyPrice()) * stopLossConfig.getQuantity());
+        });
+
+        daoService.updateMainConfig(mainDataConfig);
+    }
+
+    private List<StopLossConfig> setAnotherOrder(List<StopLossConfig> stopLossConfigs, APIService apiService) {
         stopLossConfigs.stream().min(Comparator.comparingDouble(StopLossConfig::getBuyPrice)).ifPresent(nextSell -> {
             CryptoOrderResponse cryptoOrderResponse = apiService.sellCrypto(nextSell.getSymbol(), String.valueOf(nextSell.getQuantity()),
                     String.valueOf(MathUtil.getAmount(nextSell.getBuyPrice(), 102.0)));
@@ -71,7 +89,8 @@ public class ResetStrategy implements RequestHandler<Object, String> {
         return stopLossConfigs;
     }
 
-    private void runBackTest(DaoService daoService, DataConfig mainDataConfig) throws JsonProcessingException {
+    private void runBackTest() throws IOException {
+        DataConfig mainDataConfig = daoService.getMainConfig();
         BackTest backTest = new BackTest(mainDataConfig.getToken());
         List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
         mainDataConfig.getCryptoCurrencyStatuses()
