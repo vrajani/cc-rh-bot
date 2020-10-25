@@ -31,10 +31,9 @@ public class ResetStrategy implements RequestHandler<Object, String> {
 
     private void handleStopLossOrders() throws Exception {
         System.out.println("Handling Stop Loss Orders -- ");
-        DataConfig mainDataConfig = daoService.getMainConfig();
 
         StopLossConfigBase stopLossConfigBase = daoService.getStopLossConfig();
-        APIService apiService = Application.getApiService(mainDataConfig.getToken());
+        APIService apiService = Application.getApiService(daoService.getMainConfig().getToken());
         List<StopLossConfig> updatedConfigs = new ArrayList<>();
 
         for (Map.Entry<String, List<StopLossConfig>> entry : stopLossConfigBase.getStopLossConfigs().stream()
@@ -49,7 +48,7 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                 CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(pendingOrder.get().getTranId());
                 if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.FILLED)) {
                     stopLossConfigs.remove(pendingOrder.get());
-                    updateMainConfig(mainDataConfig, cryptoOrderStatusResponse.getPrice(), pendingOrder.get());
+                    updateMainConfig(cryptoOrderStatusResponse.getPrice(), pendingOrder.get());
                     updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
                 } else if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED)) {
                     System.out.println("Pending order is cancelled. Rechecking to find the next best order to sell! - " + symbol);
@@ -63,11 +62,14 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                 updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
             }
         }
-        stopLossConfigBase.setStopLossConfigs(updatedConfigs);
-        daoService.updateStoplossConfig(stopLossConfigBase);
+        if(!stopLossConfigBase.getStopLossConfigs().equals(updatedConfigs)) {
+            stopLossConfigBase.setStopLossConfigs(updatedConfigs);
+            daoService.updateStoplossConfig(stopLossConfigBase);
+        }
     }
 
-    private void updateMainConfig(DataConfig mainDataConfig, String sellPrice, StopLossConfig stopLossConfig) throws JsonProcessingException {
+    private void updateMainConfig(String sellPrice, StopLossConfig stopLossConfig) throws IOException {
+        DataConfig mainDataConfig = daoService.getMainConfig();
         Optional<CryptoCurrencyStatus> status = mainDataConfig.getCryptoCurrencyStatuses()
                 .stream()
                 .filter(cryptoCurrencyStatus -> cryptoCurrencyStatus.getSymbol().equalsIgnoreCase(stopLossConfig.getSymbol()))
