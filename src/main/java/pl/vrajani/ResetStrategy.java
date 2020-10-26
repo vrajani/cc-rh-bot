@@ -17,12 +17,15 @@ public class ResetStrategy implements RequestHandler<Object, String> {
     @Override
     public String handleRequest(Object o, Context context) {
         this.daoService = new DaoService();
+        String functionName = context.getFunctionName();
         try {
-            // handle stop loss Order
-            handleStopLossOrders();
-
-            // run back test and update strategy
-            runBackTest();
+            if(functionName.contains("back-test")){
+                // run back test and update strategy
+                runBackTest();
+            } else {
+                // handle stop loss Order
+                handleStopLossOrders();
+            }
         } catch (Exception exception){
             exception.printStackTrace();
         }
@@ -35,6 +38,7 @@ public class ResetStrategy implements RequestHandler<Object, String> {
         StopLossConfigBase stopLossConfigBase = daoService.getStopLossConfig();
         APIService apiService = Application.getApiService(daoService.getMainConfig().getToken());
         List<StopLossConfig> updatedConfigs = new ArrayList<>();
+        Map<String, Double> profits = stopLossConfigBase.getProfits();
 
         for (Map.Entry<String, List<StopLossConfig>> entry : stopLossConfigBase.getStopLossConfigs().stream()
                 .collect(Collectors.groupingBy(StopLossConfig::getSymbol)).entrySet()) {
@@ -48,7 +52,9 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                 CryptoOrderStatusResponse cryptoOrderStatusResponse = apiService.executeCryptoOrderStatus(pendingOrder.get().getTranId());
                 if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.FILLED)) {
                     stopLossConfigs.remove(pendingOrder.get());
-                    updateMainConfig(cryptoOrderStatusResponse.getPrice(), pendingOrder.get());
+                    double profit = (Double.parseDouble(cryptoOrderStatusResponse.getPrice())
+                            - pendingOrder.get().getBuyPrice()) * pendingOrder.get().getQuantity();
+                    profits.put(symbol, profits.getOrDefault(symbol, 0.0) + profit);
                     updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
                 } else if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED)) {
                     System.out.println("Pending order is cancelled. Rechecking to find the next best order to sell! - " + symbol);
@@ -68,20 +74,6 @@ public class ResetStrategy implements RequestHandler<Object, String> {
         }
     }
 
-    private void updateMainConfig(String sellPrice, StopLossConfig stopLossConfig) throws IOException {
-        DataConfig mainDataConfig = daoService.getMainConfig();
-        Optional<CryptoCurrencyStatus> status = mainDataConfig.getCryptoCurrencyStatuses()
-                .stream()
-                .filter(cryptoCurrencyStatus -> cryptoCurrencyStatus.getSymbol().equalsIgnoreCase(stopLossConfig.getSymbol()))
-                .findFirst();
-        status.ifPresent(cryptoCurrencyStatus -> {
-            cryptoCurrencyStatus.addProfit((Double.parseDouble(sellPrice)
-                    - stopLossConfig.getBuyPrice()) * stopLossConfig.getQuantity());
-        });
-
-        daoService.updateMainConfig(mainDataConfig);
-    }
-
     private List<StopLossConfig> setAnotherOrder(List<StopLossConfig> stopLossConfigs, APIService apiService) {
         stopLossConfigs.stream().min(Comparator.comparingDouble(StopLossConfig::getBuyPrice)).ifPresent(nextSell -> {
             CryptoOrderResponse cryptoOrderResponse = apiService.sellCrypto(nextSell.getSymbol(), String.valueOf(nextSell.getQuantity()),
@@ -96,7 +88,7 @@ public class ResetStrategy implements RequestHandler<Object, String> {
         BackTest backTest = new BackTest(mainDataConfig.getToken());
         List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
         mainDataConfig.getCryptoCurrencyStatuses()
-            .forEach(cryptoCurrencyStatus -> {
+            .parallelStream().forEach(cryptoCurrencyStatus -> {
                 try {
                     List<CryptoCurrencyStatus> cryptoCurrencyStatuses = backTest.processCrypto(cryptoCurrencyStatus.getSymbol());
                     cryptoCurrencyStatus.setBuyPercent(MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getBuyPercent));
