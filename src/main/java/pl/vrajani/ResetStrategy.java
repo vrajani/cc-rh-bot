@@ -2,7 +2,6 @@ package pl.vrajani;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import pl.vrajani.model.*;
 import pl.vrajani.request.APIService;
 import pl.vrajani.service.DaoService;
@@ -68,18 +67,20 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                 updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
             }
         }
-        if(!stopLossConfigBase.getStopLossConfigs().equals(updatedConfigs)) {
             stopLossConfigBase.setStopLossConfigs(updatedConfigs);
             daoService.updateStoplossConfig(stopLossConfigBase);
-        }
     }
 
     private List<StopLossConfig> setAnotherOrder(List<StopLossConfig> stopLossConfigs, APIService apiService) {
-        stopLossConfigs.stream().min(Comparator.comparingDouble(StopLossConfig::getBuyPrice)).ifPresent(nextSell -> {
+        Optional<StopLossConfig> stopLossConfig = stopLossConfigs.stream().min(Comparator.comparingDouble(StopLossConfig::getBuyPrice));
+        if(stopLossConfig.isPresent()){
+            StopLossConfig nextSell = stopLossConfig.get();
             CryptoOrderResponse cryptoOrderResponse = apiService.sellCrypto(nextSell.getSymbol(), String.valueOf(nextSell.getQuantity()),
                     String.valueOf(MathUtil.getAmount(nextSell.getBuyPrice(), 102.0)));
+            stopLossConfigs.remove(nextSell);
             nextSell.setTranId(cryptoOrderResponse.getId());
-        });
+            stopLossConfigs.add(nextSell);
+        }
         return stopLossConfigs;
     }
 
