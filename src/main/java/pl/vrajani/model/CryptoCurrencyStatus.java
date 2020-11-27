@@ -31,6 +31,27 @@ public class CryptoCurrencyStatus extends CryptoStatusBase {
                 "]}";
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof CryptoCurrencyStatus) {
+            CryptoCurrencyStatus other = (CryptoCurrencyStatus) obj;
+            return this.ccId.equals(other.ccId) &&
+                    this.symbol.equals(other.symbol) &&
+                    this.buyAmount == other.buyAmount &&
+                    this.shouldBuy == other.shouldBuy &&
+                    this.power == other.power &&
+                    this.profit == other.profit &&
+                    this.lastBuyPrice == other.lastBuyPrice &&
+                    this.quantity == other.quantity &&
+                    this.regularSell == other.regularSell &&
+                    this.buyPercent == other.buyPercent &&
+                    this.profitPercent == other.profitPercent &&
+                    this.waitInMinutes == other.waitInMinutes;
+        } else {
+            return false;
+        }
+    }
+
     public int getRegularSell() {
         return regularSell;
     }
