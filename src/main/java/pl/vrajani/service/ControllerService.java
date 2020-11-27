@@ -160,7 +160,7 @@ public class ControllerService {
     private boolean isPendingOrderAlreadyReduced(CryptoOrderStatusResponse cryptoOrderStatusResponse, CryptoCurrencyStatus currencyStatus) {
         return cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
                 Double.parseDouble(cryptoOrderStatusResponse.getPrice()) <
-                        MathUtil.getAmount(currencyStatus.getLastBuyPrice(), 99.95 + currencyStatus.getProfitPercent());
+                        MathUtil.getAmount(currencyStatus.getLastBuyPrice(), 100 + currencyStatus.getProfitPercent());
     }
 
     public CryptoCurrencyStatus processFilledOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse cryptoOrderStatusResponse, boolean shouldExecute) throws InterruptedException {

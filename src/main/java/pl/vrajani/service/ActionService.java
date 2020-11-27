@@ -32,10 +32,12 @@ public class ActionService {
                 .max(Comparator.comparingDouble(dataPoint -> Double.parseDouble(dataPoint.getHighPrice())))
                 .get()
                 .getHighPrice());
-        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, subDataPoints, lastPrice, highPrice, true)).map(CryptoOrderResponse::getId).orElse(null);
+        return Optional.ofNullable(executeBuy(cryptoCurrencyStatus, subDataPoints, lastPrice, highPrice, true))
+                .map(CryptoOrderResponse::getId).orElse(null);
     }
 
-    public CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, List<DataPoint> dataPoints, double lastPrice, double highPrice, boolean shouldExecute) {
+    public CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, List<DataPoint> dataPoints,
+                                          double lastPrice, double highPrice, boolean shouldExecute) {
         double initialPrice = Double.parseDouble(dataPoints.get(0).getClosePrice());
         double tenMinAgoPrice = Double.parseDouble(dataPoints.get(dataPoints.size() - 2).getClosePrice());
         double buyPercent = MathUtil.getPercentAmount(lastPrice, initialPrice);
