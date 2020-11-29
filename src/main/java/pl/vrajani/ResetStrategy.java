@@ -105,7 +105,7 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                     cryptoCurrencyStatus.setBuyPercent(MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getBuyPercent));
                     cryptoCurrencyStatus.setProfitPercent(MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getProfitPercent));
                     updatedStatuses.put(cryptoCurrencyStatus.getSymbol(), cryptoCurrencyStatus);
-                } catch (InterruptedException e) {
+                } catch (InterruptedException | IOException e) {
                     e.printStackTrace();
                 }
             });

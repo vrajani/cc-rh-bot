@@ -17,7 +17,7 @@ public class ControllerService {
     private final HashMap<String, String> pendingOrdersBySymbol;
     private final List<CryptoCurrencyStatus> updatedStatus;
     private APIService apiService;
-    private ActionService actionService;
+    private OrderService orderService;
 
     public ControllerService(DaoService daoService) {
         this.daoService = daoService;
@@ -83,7 +83,7 @@ public class ControllerService {
             });
 
         this.apiService = Application.getApiService(dataConfig.getToken());
-        this.actionService = new ActionService(apiService);
+        this.orderService = new OrderService(apiService, daoService);
         return apiService.acquireToken();
     }
 
@@ -98,9 +98,9 @@ public class ControllerService {
             if (pendingOrdersBySymbol.containsKey(ccId)) {
                     return processPendingOrder(currencyStatus);
             } else if(currencyStatus.isShouldBuy()) {
-                    System.out.println("Checking Buy Order:: " + ccId);
-                    Optional<String> orderId = Optional.ofNullable(actionService.executeBuyIfPriceDown(currencyStatus));
-                    orderId.ifPresent(s -> pendingOrdersBySymbol.put(ccId, s));
+                System.out.println("Checking Buy Order:: " + ccId);
+                Optional<CryptoOrderResponse> mayBeCryptoOrderResponse = executeBuyIfPriceDown(currencyStatus);
+                mayBeCryptoOrderResponse.ifPresent(cryptoOrderResponse -> pendingOrdersBySymbol.put(ccId, cryptoOrderResponse.getId()));
             }
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
@@ -129,7 +129,8 @@ public class ControllerService {
                     double percent = 100.0 + (currencyStatus.getProfitPercent() / 3);
                     double sellPrice = MathUtil.getAmount(currencyStatus.getLastBuyPrice(), percent);
                     System.out.println("Resetting the sell order with lesser profit. symbol - " + ccId + " with limit price " + sellPrice);
-                    setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
+                    CryptoOrderResponse cryptoOrderResponse = orderService.setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
+                    pendingOrdersBySymbol.put(currencyStatus.getCcId(), cryptoOrderResponse.getId());
                 }
             }
         } else if (shouldCancelPendingOrder(symbol, cryptoOrderStatusResponse, currencyStatus.getWaitInMinutes())) {
@@ -178,7 +179,8 @@ public class ControllerService {
             if(shouldExecute) {
                 double amount = MathUtil.getAmount(Double.parseDouble(filledOrderStatus.getPrice()),
                         100 + currencyStatus.getProfitPercent());
-                setSellOrder(currencyStatus, filledOrderStatus, amount);
+                CryptoOrderResponse cryptoOrderResponse = orderService.setSellOrder(currencyStatus, filledOrderStatus, amount);
+                pendingOrdersBySymbol.put(currencyStatus.getCcId(), cryptoOrderResponse.getId());
             }
         } else {
             currencyStatus.setShouldBuy(true);
@@ -190,22 +192,14 @@ public class ControllerService {
         return currencyStatus;
     }
 
-    private void setSellOrder(CryptoCurrencyStatus currencyStatus,
-                                              CryptoOrderStatusResponse cryptoOrderStatusResponse, double price) throws InterruptedException {
-        System.out.println("Setting sell order:: " + currencyStatus.getCcId() + " with price: " + price);
-        int retryCounter = 0;
-        while(retryCounter < 3) {
-            try {
-                CryptoOrderResponse cryptoSellOrderResponse = apiService.sellCrypto(currencyStatus.getSymbol(), cryptoOrderStatusResponse.getQuantity(),
-                        String.valueOf(price));
-                pendingOrdersBySymbol.put(currencyStatus.getCcId(), cryptoSellOrderResponse.getId());
-                return;
-            } catch (Exception ex) {
-                retryCounter++;
-                ex.printStackTrace();
-                Thread.sleep(5000);
-            }
-        }
-        throw new RuntimeException("Failed to set sell order after all retries");
+    private Optional<CryptoOrderResponse> executeBuyIfPriceDown(CryptoCurrencyStatus cryptoCurrencyStatus) throws IOException, InterruptedException {
+        String symbol = cryptoCurrencyStatus.getSymbol();
+        CryptoHistPrice cryptoDayData = apiService.getCryptoHistPriceBySymbol(symbol, "day", "5minute");
+        double lastPrice = Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice());
+
+        List<DataPoint> dataPoints = cryptoDayData.getDataPoints();
+        int duration = Integer.parseInt(System.getenv("duration"));
+        final List<DataPoint> subDataPoints = dataPoints.subList(dataPoints.size() - duration, dataPoints.size());
+        return Optional.ofNullable(orderService.executeBuy(cryptoCurrencyStatus, subDataPoints, lastPrice, true));
     }
 }

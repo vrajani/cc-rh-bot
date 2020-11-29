@@ -2,10 +2,11 @@ package pl.vrajani;
 
 import pl.vrajani.model.*;
 import pl.vrajani.request.APIService;
-import pl.vrajani.service.ActionService;
+import pl.vrajani.service.OrderService;
 import pl.vrajani.service.ControllerService;
 import pl.vrajani.utility.MathUtil;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ public class BackTest {
         Map<String, List<CryptoCurrencyStatus>> statusByCrypto = CRYPTOS.stream().collect(Collectors.toMap(Function.identity(), crypto -> {
             try {
                 return processCrypto(crypto);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
             }
             return new ArrayList<>();
@@ -54,7 +55,7 @@ public class BackTest {
         System.out.println(result.toString());
     }
 
-    public List<CryptoCurrencyStatus> processCrypto(String crypto) throws InterruptedException {
+    public List<CryptoCurrencyStatus> processCrypto(String crypto) throws InterruptedException, IOException {
         List<Double> profitPercentRange = getPercentRange();
         List<Double> buyPercentRange = getPercentRange();
         List<CryptoCurrencyStatus> results = new ArrayList<>();
@@ -86,16 +87,14 @@ public class BackTest {
         return profitPercent;
     }
 
-    private CryptoCurrencyStatus runTest(CryptoHistPrice cryptoHistPriceBySymbol, CryptoCurrencyStatus testConfig) throws InterruptedException {
-        ActionService actionService = new ActionService(null);
+    private CryptoCurrencyStatus runTest(CryptoHistPrice cryptoHistPriceBySymbol, CryptoCurrencyStatus testConfig) throws InterruptedException, IOException {
+        OrderService orderService = new OrderService(null, null);
         ControllerService  controllerService = new ControllerService(null);
         List<DataPoint> dataPoints = cryptoHistPriceBySymbol.getDataPoints();
         int i = 0;
-        for (int j = 0; j < dataPoints.size() - 1; i++) {
-            j = i + 6;
-            double highPrice = Double.parseDouble(dataPoints.subList(j < 288 ? 0 : i, j).stream().max(Comparator.comparingDouble(dataPoint -> Double.parseDouble(dataPoint.getHighPrice()))).get().getHighPrice());
+        for (int j = i + 6; j < dataPoints.size() - 1; i++) {
             if (testConfig.isShouldBuy()) {
-                CryptoOrderResponse cryptoOrderResponse = actionService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), highPrice, false);
+                CryptoOrderResponse cryptoOrderResponse = orderService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), false);
                 if(cryptoOrderResponse != null) {
                     System.out.println("Buy Order Executed: " + cryptoOrderResponse.toString());
                     testConfig = controllerService.processFilledOrder(testConfig, getDummyCryptoOrderStatusResponse(cryptoOrderResponse), false);
