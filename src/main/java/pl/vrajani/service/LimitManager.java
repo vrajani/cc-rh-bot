@@ -1,11 +1,9 @@
 package pl.vrajani.service;
 
-import pl.vrajani.model.StopLossConfig;
-
 import java.io.IOException;
 
 public class LimitManager {
-    private static final double LIMIT_DOLLAR_STOP_LOSS = 1500.0;
+    private static final int LIMIT_STOP_LOSS_PENDING_ORDER = 4;
     private final DaoService daoService;
 
     public LimitManager(DaoService daoService) {
@@ -13,11 +11,9 @@ public class LimitManager {
     }
 
     boolean shouldBuyMore(String symbol, double lastPrice) throws IOException {
-        double pendingStopLossQuantity = daoService.getStopLossConfig().getStopLossConfigs()
+        return daoService.getStopLossConfig().getStopLossConfigs()
                 .stream()
                 .filter(stopLossConfig -> stopLossConfig.getSymbol().equalsIgnoreCase(symbol))
-                .mapToDouble(StopLossConfig::getQuantity)
-                .sum();
-        return lastPrice * pendingStopLossQuantity < LIMIT_DOLLAR_STOP_LOSS;
+                .count() < LIMIT_STOP_LOSS_PENDING_ORDER;
     }
 }

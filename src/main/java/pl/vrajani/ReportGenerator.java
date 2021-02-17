@@ -23,15 +23,6 @@ public class ReportGenerator implements RequestHandler<Object, String> {
 
         try {
             StringBuilder stringBuilder = new StringBuilder();
-            List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
-            DataConfig dataConfig = daoService.getMainConfig();
-            dataConfig.getCryptoCurrencyStatuses()
-                .forEach(cryptoCurrencyStatus -> {
-                    if(cryptoCurrencyStatus.getRegularSell() != 0) {
-                        getReportData(stringBuilder, cryptoCurrencyStatus);
-                    }
-                    updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
-                });
 
             StopLossConfigBase stopLossConfig = daoService.getStopLossConfig();
             Map<String, Double> stopLossProfits = stopLossConfig.getProfits();
@@ -47,10 +38,20 @@ public class ReportGenerator implements RequestHandler<Object, String> {
                 });
             }
 
+            List<CryptoCurrencyStatus> updatedStatuses = new ArrayList<>();
+            DataConfig dataConfig = daoService.getMainConfig();
+            dataConfig.getCryptoCurrencyStatuses()
+                    .forEach(cryptoCurrencyStatus -> {
+                        if(cryptoCurrencyStatus.getRegularSell() != 0) {
+                            getReportData(stringBuilder, cryptoCurrencyStatus);
+                        }
+                        updatedStatuses.add(resetCryptoCurrencyStatus(cryptoCurrencyStatus));
+                    });
+
             if(stringBuilder.length() > 0) {
-                daoService.registerTransactionReport(stringBuilder.toString());
                 dataConfig.setCryptoCurrencyStatuses(updatedStatuses);
                 daoService.updateMainConfig(dataConfig);
+                daoService.registerTransactionReport(stringBuilder.toString());
 
                 stopLossConfig.setProfits(new HashMap<>());
                 daoService.updateStoplossConfig(stopLossConfig);

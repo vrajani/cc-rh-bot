@@ -22,12 +22,15 @@ public class TimeUtil {
         return dateFormat.format( new Date());
     }
 
-    public static boolean isPendingOrderForLong(String createdAt, int waitInMinutes) {
+    public static boolean isPendingOrderForLong(String createdAt, boolean isBuy) {
         createdAt = createdAt.substring(0, 23);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
         LocalDateTime localDateTime = LocalDateTime.parse(createdAt, formatter);
-        LocalDateTime threeHrsAgo = LocalDateTime.now().minusMinutes(waitInMinutes); // now in UTC
-        System.out.println("Set wait time ago: " + threeHrsAgo.format(formatter));
-        return localDateTime.isBefore(threeHrsAgo);
+        LocalDateTime twoDaysAgo = LocalDateTime.now().minusHours(48); // now in UTC
+        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(7);
+        if(isBuy){
+            return localDateTime.isBefore(threeHoursAgo);
+        }
+        return localDateTime.isBefore(twoDaysAgo);
     }
 }

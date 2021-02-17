@@ -47,8 +47,9 @@ public class BackTest {
             result.append(cryptoCurrencyStatus.getProfitPercent()).append(ReportGenerator.SEPARATOR);
             ReportGenerator.getReportData(result, cryptoCurrencyStatus);
         }
-        double medianProfitPercent = MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getProfitPercent);
-        double medianBuyPercent = MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getBuyPercent);
+        CryptoCurrencyStatus medianByProfitPercent = MathUtil.getMedianByProfitPercent(cryptoCurrencyStatuses);
+        double medianProfitPercent = medianByProfitPercent.getProfitPercent();
+        double medianBuyPercent = medianByProfitPercent.getBuyPercent();
 
         result.append("\nMedian sell percent - ").append(medianProfitPercent)
             .append("\nMedian buy percent - ").append(medianBuyPercent);
@@ -79,7 +80,7 @@ public class BackTest {
 
     private List<Double> getPercentRange() {
         List<Double> profitPercent = new ArrayList<>();
-        double currentPercent = 0.2;
+        double currentPercent = 0.35;
         while(currentPercent <= 1.5) {
             profitPercent.add(currentPercent);
             currentPercent += 0.05;
@@ -92,7 +93,8 @@ public class BackTest {
         ControllerService  controllerService = new ControllerService(null);
         List<DataPoint> dataPoints = cryptoHistPriceBySymbol.getDataPoints();
         int i = 0;
-        for (int j = i + 6; j < dataPoints.size() - 1; i++) {
+        for (int j = 0; j < dataPoints.size() - 1; i++) {
+            j = i + 6;
             if (testConfig.isShouldBuy()) {
                 CryptoOrderResponse cryptoOrderResponse = orderService.executeBuy(testConfig, dataPoints.subList(i,j), Double.parseDouble(dataPoints.get(j).getClosePrice()), false);
                 if(cryptoOrderResponse != null) {

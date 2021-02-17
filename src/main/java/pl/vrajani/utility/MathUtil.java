@@ -4,6 +4,7 @@ import pl.vrajani.BackTest;
 import pl.vrajani.model.CryptoCurrencyStatus;
 
 import java.text.DecimalFormat;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
@@ -21,12 +22,11 @@ public class MathUtil {
         DecimalFormat df = new DecimalFormat("0.00");
         return Double.parseDouble(df.format(price));
     }
-    public static double getMedianPercent(List<CryptoCurrencyStatus> cryptoCurrencyStatuses, Function<CryptoCurrencyStatus, Double> mapperFunction) {
-        return roundDecimal(cryptoCurrencyStatuses.stream()
-                .map(mapperFunction)
-                .sorted()
+    public static CryptoCurrencyStatus getMedianByProfitPercent(List<CryptoCurrencyStatus> cryptoCurrencyStatuses) {
+        return cryptoCurrencyStatuses.stream()
+                .sorted(Comparator.comparing(CryptoCurrencyStatus::getProfitPercent))
                 .skip((BackTest.TOP_K -1)/2)
                 .findFirst()
-                .orElse(0.0));
+                .get();
     }
 }

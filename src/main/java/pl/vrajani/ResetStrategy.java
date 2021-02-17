@@ -56,7 +56,8 @@ public class ResetStrategy implements RequestHandler<Object, String> {
                             - pendingOrderValue.getBuyPrice()) * pendingOrderValue.getQuantity();
                     profits.put(symbol, profits.getOrDefault(symbol, 0.0) + profit);
                     updatedConfigs.addAll(setAnotherOrder(stopLossConfigs, apiService));
-                } else if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED)) {
+                } else if (OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED) ||
+                        OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.REJECTED)) {
                     System.out.println("Pending order is cancelled. Rechecking to find the next best order to sell! - " + symbol);
                     stopLossConfigs.remove(pendingOrderValue);
                     pendingOrderValue.setTranId("");
@@ -86,7 +87,7 @@ public class ResetStrategy implements RequestHandler<Object, String> {
         if(stopLossConfig.isPresent()){
             StopLossConfig nextSell = stopLossConfig.get();
             CryptoOrderResponse cryptoOrderResponse = apiService.sellCrypto(nextSell.getSymbol(), String.valueOf(nextSell.getQuantity()),
-                    String.valueOf(MathUtil.getAmount(nextSell.getBuyPrice(), 102.0)));
+                    String.valueOf(MathUtil.getAmount(nextSell.getBuyPrice(), 100.50)));
             stopLossConfigs.remove(nextSell);
             nextSell.setTranId(cryptoOrderResponse.getId());
             stopLossConfigs.add(nextSell);
@@ -102,21 +103,30 @@ public class ResetStrategy implements RequestHandler<Object, String> {
             .parallelStream().forEach(cryptoCurrencyStatus -> {
                 try {
                     List<CryptoCurrencyStatus> cryptoCurrencyStatuses = backTest.processCrypto(cryptoCurrencyStatus.getSymbol());
-                    cryptoCurrencyStatus.setBuyPercent(MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getBuyPercent));
-                    cryptoCurrencyStatus.setProfitPercent(MathUtil.getMedianPercent(cryptoCurrencyStatuses, CryptoStatusBase::getProfitPercent));
+                    CryptoCurrencyStatus medianByProfitPercent = MathUtil.getMedianByProfitPercent(cryptoCurrencyStatuses);
+                    cryptoCurrencyStatus.setBuyPercent(medianByProfitPercent.getBuyPercent());
+                    cryptoCurrencyStatus.setProfitPercent(medianByProfitPercent.getProfitPercent());
                     updatedStatuses.put(cryptoCurrencyStatus.getSymbol(), cryptoCurrencyStatus);
                 } catch (InterruptedException | IOException e) {
                     e.printStackTrace();
                 }
             });
 
+        daoService.updateMainConfig(getUpdatedConfig(updatedStatuses));
+    }
+
+    private DataConfig getUpdatedConfig(Map<String, CryptoCurrencyStatus> updatedStatuses) throws IOException {
         DataConfig recentDataConfig = daoService.getMainConfig();
-        if(isConfigUnchanged(recentDataConfig, mainDataConfig)){
-            mainDataConfig.setCryptoCurrencyStatuses(new ArrayList<>(updatedStatuses.values()));
-            daoService.updateMainConfig(mainDataConfig);
-        } else {
-            System.out.println("CryptoStatus changed since back test ran, skipping this update!");
-        }
+        recentDataConfig.setCryptoCurrencyStatuses(recentDataConfig.getCryptoCurrencyStatuses()
+        .stream()
+        .peek(recentStatus -> {
+            CryptoCurrencyStatus updatedStatus = updatedStatuses.get(recentStatus.getSymbol());
+            recentStatus.setBuyPercent(updatedStatus.getBuyPercent());
+            recentStatus.setProfitPercent(updatedStatus.getProfitPercent());
+        })
+        .collect(Collectors.toList()));
+
+        return recentDataConfig;
     }
 
     private boolean isConfigUnchanged(DataConfig recentDataConfig, DataConfig mainDataConfig) {

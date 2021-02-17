@@ -35,11 +35,13 @@ public class OrderService {
         double tenMinAgoPrice = Double.parseDouble(dataPoints.get(dataPoints.size() - 2).getClosePrice());
         double tenMinPercent = MathUtil.getPercentAmount(lastPrice, tenMinAgoPrice);
 
-        System.out.println("Current Value: " + lastPrice
-                + "\n10 Min ago Value: " + tenMinAgoPrice
-                + "\n10 Min Percent: "+ tenMinPercent
-                + "\n" + (dataPoints.size() * 5) + "Min ago Value: " + initialPrice
-                + "\nBuy Percent: "+ buyPercent);
+        if(Boolean.parseBoolean(System.getenv("PRINT_INFO_LOGS"))){
+            System.out.println("Current Value: " + lastPrice
+                    + "\n10 Min ago Value: " + tenMinAgoPrice
+                    + "\n10 Min Percent: "+ tenMinPercent
+                    + "\n" + (dataPoints.size() * 5) + "Min ago Value: " + initialPrice
+                    + "\nBuy Percent: "+ buyPercent);
+        }
 
         double highPrice = dataPoints
                 .stream()

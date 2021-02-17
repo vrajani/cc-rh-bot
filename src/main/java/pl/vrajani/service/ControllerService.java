@@ -118,22 +118,12 @@ public class ControllerService {
         } else if(OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.CANCELED) ||
                 OrderState.getState(cryptoOrderStatusResponse.getState()).equals(OrderState.REJECTED)) {
             System.out.println("The order was cancelled: " + ccId + " with order Id: " + previousOrderId);
-            if(cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")) {
-                pendingOrdersBySymbol.remove(ccId);
-            } else {
-                if(isPendingOrderAlreadyReduced(cryptoOrderStatusResponse, currencyStatus)) {
-                    System.out.println("Order cancelled as the price is down by over 10% - " + symbol);
-                    addToStopLossConfig(symbol, cryptoOrderStatusResponse);
-                    pendingOrdersBySymbol.remove(ccId);
-                } else {
-                    double percent = 100.0 + (currencyStatus.getProfitPercent() / 3);
-                    double sellPrice = MathUtil.getAmount(currencyStatus.getLastBuyPrice(), percent);
-                    System.out.println("Resetting the sell order with lesser profit. symbol - " + ccId + " with limit price " + sellPrice);
-                    CryptoOrderResponse cryptoOrderResponse = orderService.setSellOrder(currencyStatus, cryptoOrderStatusResponse, sellPrice);
-                    pendingOrdersBySymbol.put(currencyStatus.getCcId(), cryptoOrderResponse.getId());
-                }
+            if (!cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")) {
+                System.out.println("Order cancelled as the price is down by over 10% OR pending for long - " + symbol);
+                addToStopLossConfig(symbol, cryptoOrderStatusResponse);
             }
-        } else if (shouldCancelPendingOrder(symbol, cryptoOrderStatusResponse, currencyStatus.getWaitInMinutes())) {
+            pendingOrdersBySymbol.remove(ccId);
+        } else if (shouldCancelPendingOrder(symbol, cryptoOrderStatusResponse)) {
             System.out.println("Cancelling the order as it has been pending for long or dropped by more than 10% since last buy. symbol - "
                     + ccId + " last "+ cryptoOrderStatusResponse.getSide() +" order price - " + cryptoOrderStatusResponse.getPrice());
             apiService.cancelOrder(symbol, cryptoOrderStatusResponse.getCancelUrl());
@@ -144,11 +134,12 @@ public class ControllerService {
         return Optional.empty();
     }
 
-    private boolean shouldCancelPendingOrder(String symbol, CryptoOrderStatusResponse cryptoOrderStatusResponse, int waitInMinutes) {
-        return TimeUtil.isPendingOrderForLong(cryptoOrderStatusResponse.getCreatedAt(), waitInMinutes) &&
-                (cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy") ||
+    private boolean shouldCancelPendingOrder(String symbol, CryptoOrderStatusResponse cryptoOrderStatusResponse) {
+        boolean isBuy = cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy");
+        return TimeUtil.isPendingOrderForLong(cryptoOrderStatusResponse.getCreatedAt(), isBuy) ||
+                (!isBuy &&
                     MathUtil.getPercentAmount(Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice()),
-                        Double.valueOf(cryptoOrderStatusResponse.getPrice())) <= 90.0);
+                        Double.valueOf(cryptoOrderStatusResponse.getPrice())) <= 95.0);
     }
 
     private void addToStopLossConfig(String symbol, CryptoOrderStatusResponse cryptoOrderStatusResponse) throws IOException {
@@ -160,12 +151,6 @@ public class ControllerService {
         stopLossConfig.setBuyPrice(Double.parseDouble(cryptoOrderStatusResponse.getPrice()));
         stopLossConfigBase.getStopLossConfigs().add(stopLossConfig);
         daoService.updateStoplossConfig(stopLossConfigBase);
-    }
-
-    private boolean isPendingOrderAlreadyReduced(CryptoOrderStatusResponse cryptoOrderStatusResponse, CryptoCurrencyStatus currencyStatus) {
-        return cryptoOrderStatusResponse.getSide().equalsIgnoreCase("sell") &&
-                Double.parseDouble(cryptoOrderStatusResponse.getPrice()) <
-                        MathUtil.getAmount(currencyStatus.getLastBuyPrice(), 100 + currencyStatus.getProfitPercent());
     }
 
     public CryptoCurrencyStatus processFilledOrder(CryptoCurrencyStatus currencyStatus, CryptoOrderStatusResponse filledOrderStatus, boolean shouldExecute) throws InterruptedException {
