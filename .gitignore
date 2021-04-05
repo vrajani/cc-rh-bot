@@ -8,3 +8,4 @@ logs/
 *.txt
 *.json
 .aws-sam/
+.DS_Store

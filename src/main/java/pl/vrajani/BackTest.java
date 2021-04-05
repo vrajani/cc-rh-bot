@@ -80,7 +80,7 @@ public class BackTest {
 
     private List<Double> getPercentRange() {
         List<Double> profitPercent = new ArrayList<>();
-        double currentPercent = 0.35;
+        double currentPercent = 0.7;
         while(currentPercent <= 1.5) {
             profitPercent.add(currentPercent);
             currentPercent += 0.05;

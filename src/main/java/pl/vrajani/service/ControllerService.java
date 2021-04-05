@@ -120,7 +120,7 @@ public class ControllerService {
             System.out.println("The order was cancelled: " + ccId + " with order Id: " + previousOrderId);
             if (!cryptoOrderStatusResponse.getSide().equalsIgnoreCase("buy")) {
                 System.out.println("Order cancelled as the price is down by over 10% OR pending for long - " + symbol);
-                addToStopLossConfig(symbol, cryptoOrderStatusResponse);
+                addToStopLossConfig(symbol, cryptoOrderStatusResponse.getQuantity(), currencyStatus.getLastBuyPrice());
             }
             pendingOrdersBySymbol.remove(ccId);
         } else if (shouldCancelPendingOrder(symbol, cryptoOrderStatusResponse)) {
@@ -139,16 +139,16 @@ public class ControllerService {
         return TimeUtil.isPendingOrderForLong(cryptoOrderStatusResponse.getCreatedAt(), isBuy) ||
                 (!isBuy &&
                     MathUtil.getPercentAmount(Double.parseDouble(apiService.getCryptoPriceBySymbol(symbol).getMarkPrice()),
-                        Double.valueOf(cryptoOrderStatusResponse.getPrice())) <= 95.0);
+                        Double.valueOf(cryptoOrderStatusResponse.getPrice())) <= 93.0);
     }
 
-    private void addToStopLossConfig(String symbol, CryptoOrderStatusResponse cryptoOrderStatusResponse) throws IOException {
+    private void addToStopLossConfig(String symbol, String quantity, double price) throws IOException {
         StopLossConfigBase stopLossConfigBase = daoService.getStopLossConfig();
         StopLossConfig stopLossConfig = new StopLossConfig();
         stopLossConfig.setTranId("");
         stopLossConfig.setSymbol(symbol.toUpperCase());
-        stopLossConfig.setQuantity(Double.parseDouble(cryptoOrderStatusResponse.getQuantity()));
-        stopLossConfig.setBuyPrice(Double.parseDouble(cryptoOrderStatusResponse.getPrice()));
+        stopLossConfig.setQuantity(Double.parseDouble(quantity));
+        stopLossConfig.setBuyPrice(price);
         stopLossConfigBase.getStopLossConfigs().add(stopLossConfig);
         daoService.updateStoplossConfig(stopLossConfigBase);
     }

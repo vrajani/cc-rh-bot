@@ -55,7 +55,7 @@ public class OrderService {
     }
 
     private CryptoOrderResponse executeBuy(CryptoCurrencyStatus cryptoCurrencyStatus, double lastPrice, double quantity) throws IOException, InterruptedException {
-        if(limitManager.shouldBuyMore(cryptoCurrencyStatus.getSymbol(), lastPrice)) {
+        if(limitManager.shouldBuyMore(cryptoCurrencyStatus.getSymbol())) {
             return executeWithRetry(cryptoCurrencyStatus.getSymbol(), String.valueOf(quantity), String.valueOf(lastPrice), "buy");
         } else {
             System.out.println("Already have pending orders in stop loss more than limit!");
